@@ -23,8 +23,7 @@ unzip mrqa-few-shot.zip
 ```
 
 ### Run & Verify correctness so far
-Note on single Titan X took ZZZ to run:
-04/25/2021 17:09:59
+Note on single Titan X took ~45 minutes to run.
 ```angular2html
 mkdir outputs
 python run_mrqa.py \
