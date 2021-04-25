@@ -23,7 +23,7 @@ unzip mrqa-few-shot.zip
 ```
 
 ### Run & Verify correctness so far
-Note on single Titan X took ~45 minutes to run.
+Note on single Titan X took ~45 minutes to train + ~1 hour to eval.
 ```angular2html
 mkdir outputs
 python run_mrqa.py \
