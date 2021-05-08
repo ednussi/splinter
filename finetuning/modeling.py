@@ -4,7 +4,8 @@ from torch.nn import Module, Linear, LayerNorm, CrossEntropyLoss
 from torch.nn.parameter import Parameter
 
 from transformers import BertPreTrainedModel, BertModel, RobertaModel
-from transformers.models.bert.modeling_bert import BertLMPredictionHead, ACT2FN
+# from transformers.models.bert.modeling_bert import BertLMPredictionHead, ACT2FN
+from transformers.modeling_bert import BertLMPredictionHead, ACT2FN
 
 
 def gather_positions(input_tensor, positions):
