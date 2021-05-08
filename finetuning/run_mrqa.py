@@ -30,6 +30,7 @@ import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
+from augment_utils import add_aug
 
 from transformers import (
     MODEL_FOR_QUESTION_ANSWERING_MAPPING,
@@ -48,7 +49,7 @@ from transformers.data.metrics.squad_metrics import (
     normalize_answer, compute_exact, compute_f1, make_eval_dict, merge_eval)
 from transformers.data.processors.squad import SquadResult, SquadV1Processor, SquadV2Processor
 
-from modeling import ModelWithQASSHead
+from modeling import ModelWithQASSHead, set_seed
 from mrqa_processor import MRQAProcessor
 
 try:
@@ -62,12 +63,7 @@ MODEL_CONFIG_CLASSES = list(MODEL_FOR_QUESTION_ANSWERING_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 
 
-def set_seed(args):
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    if args.n_gpu > 0:
-        torch.cuda.manual_seed_all(args.seed)
+
 
 
 def to_list(tensor):
@@ -532,7 +528,6 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
                 examples = processor.get_dev_examples(args.data_dir, filename=args.predict_file)
             else:
                 examples = processor.get_train_examples(args.data_dir, filename=args.train_file)
-
         features, dataset = squad_convert_examples_to_features(
             examples=examples,
             tokenizer=tokenizer,
@@ -568,7 +563,7 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-def main():
+def init_parser():
     parser = argparse.ArgumentParser()
 
     # Required parameters
@@ -779,9 +774,32 @@ def main():
                                                                          "naturalqa", "squad", "bioasq", "textbookqa"])
     parser.add_argument("--dont_output_nbest", action="store_true")
     parser.add_argument("--nbest_calculation", action="store_true")
+    parser.add_argument('--augs_names', nargs='+', required=False, default=[],
+                        help='list of augs name from: delete-random, insert-word-embed, sub-word-embed, insert-bert-embed, sub-bert-embed')
+    parser.add_argument('--augs_count', nargs='+', required=False, default=[],
+                        help='list of augs count matching in length to augs names')
+
+    return parser
 
 
+def main():
+    parser = init_parser()
     args = parser.parse_args()
+
+    # squad-train-seed-42-num-examples-16.jsonl
+    # squad-train-seed-42-num-examples-16-augs_delete-random_4_insert-word-embed.jsonl
+
+    # Verify data file matches augs type
+    import pdb; pdb.set_trace()
+    if len(args.augs_names): # In case we want to use augmentation
+
+        # Get file name
+        base_filename = args.train_file.split('augs')[-1].split('.')[0]
+        aug_names_count_str = '_'.join([f'{x}-{y}' for x, y in zip(args.augs_names, args.augs_count)])
+        new_f_name = f'{base_filename}-augs_{aug_names_count_str}.jsonl'
+
+        add_aug(args, new_f_name) # Create new file with augs
+        args.train_file = new_f_name #set file to use to new file
 
     assert args.dataset_format in ["mrqa", "squad"]
 
