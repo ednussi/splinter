@@ -528,6 +528,8 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
                 examples = processor.get_dev_examples(args.data_dir, filename=args.predict_file)
             else:
                 examples = processor.get_train_examples(args.data_dir, filename=args.train_file)
+        import pdb; pdb.set_trace()
+        # features, dataset = squad_convert_examples_to_features(examples=examples,tokenizer=tokenizer,max_seq_length=args.max_seq_length,doc_stride=args.doc_stride,max_query_length=args.max_query_length,is_training=not evaluate,return_dataset="pt",threads=args.threads)
         features, dataset = squad_convert_examples_to_features(
             examples=examples,
             tokenizer=tokenizer,
@@ -790,7 +792,6 @@ def main():
     # squad-train-seed-42-num-examples-16-augs_delete-random_4_insert-word-embed.jsonl
 
     # Verify data file matches augs type
-    import pdb; pdb.set_trace()
     if len(args.augs_names): # In case we want to use augmentation
 
         # Get file name
@@ -997,7 +998,6 @@ def main():
     logger.info("Results: {}".format(results))
 
     return results
-
 
 if __name__ == "__main__":
     main()
