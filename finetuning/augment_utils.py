@@ -5,10 +5,10 @@ import shutil
 import nlpaug.augmenter.word as naw
 import requests
 from tqdm import tqdm
+import re
 import logging
-import argparse
 logger = logging.getLogger(__name__)
-
+from utils import init_parser
 
 from transformers import (
     AutoTokenizer,
@@ -70,6 +70,16 @@ def get_n_new_aug(aug, text, new_augs_num):
         news_augs_set.update({aug.augment(text)})
     return news_augs_set
 
+
+def get_words_start_pos_list(text, tokenizer):
+    encoded_input = tokenizer(text)
+    words_tokenized = [tokenizer.decode(token) for token in encoded_input['input_ids']]
+    words_tokenized = [w.strip() for w in words_tokenized if w not in ['<s>','</s>']]
+    text_tokens = [[word.group(), word.start()] for word in re.finditer(r'\S+', ' '.join(words_tokenized))]
+    text_tokens[-1][1] = text_tokens[-1][1] - 1 # question mark indicatng last token?
+    return text_tokens
+
+
 def add_aug(args, new_f_name):
     logger.info(f'Loading Examples from file {args.train_file}')
     # open file
@@ -78,7 +88,7 @@ def add_aug(args, new_f_name):
 
     augs = get_augs_from_names(args.augs_names)
     logger.info(f'Loading Tokenizer {args.tokenizer_name}')
-    tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_name)
+    tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_name, add_prefix_space=True) #add_prefix_space=True for roberta-base
 
     new_jsonl_lines = []
     header_line = input_data[0]
@@ -93,25 +103,25 @@ def add_aug(args, new_f_name):
             qid = qas['qid']
             # q_tokens = qas['question_tokens']
             detected_answers = qas['detected_answers']
+
+            # Sanity check to make sure question tokens are reconstructed correctly
+            q_tokens = get_words_start_pos_list(q, tokenizer)
+            assert(q_tokens == qas['question_tokens'], f'{q_tokens},\n {qas["question_tokens"]} ')
+
             for aug_num,aug in zip(args.augs_count, augs):
                 # create augs per count
                 set_seed(args) #initialize seed
                 news_q_augs_set = get_n_new_aug(aug, q, int(aug_num))
 
-                for new_aug_q in news_q_augs_set:
-                    # get question tokens
-                    encoded_input = tokenizer(new_aug_q)
-                    new_question_tokens = [[tokenizer.decode(token), token] for token in encoded_input['input_ids']]
-                    # decoded_input = tokenizer.decode(encoded_input['input_ids'])
-                    # decoded_input = decoded_input.replace('<s>', '').replace('</s>', '')
-                    #
-                    # new_question_tokens = [[word,token] for word,token in zip(new_aug_q.split(), encoded_input)]
-                    import pdb; pdb.set_trace()
+                for new_aug_q_i, new_aug_q in enumerate(news_q_augs_set):
+                    # question/answer/context tokens in the jsonl file are just the position each word starts in
+                    new_question_tokens = get_words_start_pos_list(new_aug_q, tokenizer)
+
                     # append new example
                     augmented_qas = {'answers':answers,
                                            'question':new_aug_q,
-                                           'id': id,
-                                           'qid': qid,
+                                           'id': f'{id}_{new_aug_q_i}',
+                                           'qid': f'{qid}_{new_aug_q_i}',
                                            'question_tokens': new_question_tokens,
                                            'detected_answers': detected_answers}
 
@@ -133,7 +143,7 @@ def test_single_aug_addition():
     class C:
         pass
     args = C()
-    parser = argparse.ArgumentParser()
+    parser = init_parser()
     parser.parse_args(args=['--seed', '42',
                             '--train_file', 'squad/squad-train-seed-42-num-examples-16.jsonl',
                             '--augs_names', 'sub-bert-embed',
@@ -156,4 +166,4 @@ def test_single_aug_addition():
 
 if __name__ == '__main__':
     test_single_aug_addition()
-    squad_convert_examples_to_features()
+    #squad_convert_examples_to_features()
