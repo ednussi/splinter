@@ -8,14 +8,14 @@ from tqdm import tqdm
 import re
 import logging
 logger = logging.getLogger(__name__)
-from utils import init_parser
+from utils import init_parser, get_aug_filename
 
-from transformers import (
-    AutoTokenizer,
-    squad_convert_examples_to_features,
-)
-
+from transformers import AutoTokenizer
 from modeling import set_seed
+
+# Construction 1
+from spacy.tokenizer import Tokenizer
+from spacy.lang.en import English
 
 def download(url, fname):
     resp = requests.get(url, stream=True)
@@ -71,12 +71,24 @@ def get_n_new_aug(aug, text, new_augs_num):
     return news_augs_set
 
 
+
+
+
+def get_words_start_pos_list_spacy(text, tokenizer):
+    print('Text:', text)
+    tokens = tokenizer(text)
+    text_tokens_pos = [[token.text, token.idx] for token in tokens]
+    return text_tokens_pos
+
 def get_words_start_pos_list(text, tokenizer):
     encoded_input = tokenizer(text)
+    print(encoded_input)
     words_tokenized = [tokenizer.decode(token) for token in encoded_input['input_ids']]
+    print(words_tokenized)
     words_tokenized = [w.strip() for w in words_tokenized if w not in ['<s>','</s>']]
     text_tokens = [[word.group(), word.start()] for word in re.finditer(r'\S+', ' '.join(words_tokenized))]
     text_tokens[-1][1] = text_tokens[-1][1] - 1 # question mark indicatng last token?
+    print(text_tokens)
     return text_tokens
 
 
@@ -88,7 +100,11 @@ def add_aug(args, new_f_name):
 
     augs = get_augs_from_names(args.augs_names)
     logger.info(f'Loading Tokenizer {args.tokenizer_name}')
-    tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_name, add_prefix_space=True) #add_prefix_space=True for roberta-base
+    # tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_name, add_prefix_space=True) #add_prefix_space=True for roberta-base
+
+    # Get Spacy tokenizer with the default settings for English including punctuation rules and exceptions
+    nlp = English()
+    tokenizer = nlp.tokenizer
 
     new_jsonl_lines = []
     header_line = input_data[0]
@@ -105,8 +121,8 @@ def add_aug(args, new_f_name):
             detected_answers = qas['detected_answers']
 
             # Sanity check to make sure question tokens are reconstructed correctly
-            q_tokens = get_words_start_pos_list(q, tokenizer)
-            assert(q_tokens == qas['question_tokens'], f'{q_tokens},\n {qas["question_tokens"]} ')
+            q_tokens = get_words_start_pos_list_spacy(q, tokenizer)
+            assert q_tokens == qas['question_tokens'], f'{q_tokens},\n {qas["question_tokens"]} '
 
             for aug_num,aug in zip(args.augs_count, augs):
                 # create augs per count
@@ -115,7 +131,13 @@ def add_aug(args, new_f_name):
 
                 for new_aug_q_i, new_aug_q in enumerate(news_q_augs_set):
                     # question/answer/context tokens in the jsonl file are just the position each word starts in
-                    new_question_tokens = get_words_start_pos_list(new_aug_q, tokenizer)
+                    new_question_tokens = get_words_start_pos_list_spacy(new_aug_q, tokenizer)
+
+                    # # Save in MRQAExample internal format
+                    # MRQAExample(qas_id=qas_id, question_text=question_text, question_tokens=question_tokens,
+                    #             context_text=context, context_tokens=context_tokens,
+                    #             answer_text=answer_text,
+                    #             start_position_character=start_position_character, answers=answers)
 
                     # append new example
                     augmented_qas = {'answers':answers,
@@ -155,15 +177,11 @@ def test_single_aug_addition():
                             ], namespace=args)
     args.n_gpu = 1
     # Test function
-    base_filename = args.train_file.split('augs')[-1].split('.')[0]
-    aug_names_count_str = '_'.join([f'{x}-{y}' for x,y in zip(args.augs_names, args.augs_count)])
-    new_f_name = f'{base_filename}-augs_{aug_names_count_str}.jsonl'
+    new_f_name = get_aug_filename(args)
     add_aug(args, new_f_name)
 
     # Check file exists & Delete
     print(f'{new_f_name} Exists: {os.path.exists(new_f_name)}')
 
-
 if __name__ == '__main__':
     test_single_aug_addition()
-    #squad_convert_examples_to_features()
