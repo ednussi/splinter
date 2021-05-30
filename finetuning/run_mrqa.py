@@ -15,17 +15,14 @@
 # limitations under the License.
 """ Finetuning the library models for question-answering on SQuAD (DistilBERT, Bert, XLM, XLNet)."""
 
-import argparse
 import glob
 import json
 import logging
 import os
 import pickle
-import random
 import timeit
 import shutil
 
-import numpy as np
 import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
@@ -50,7 +47,7 @@ from transformers.data.processors.squad import SquadResult, SquadV1Processor, Sq
 
 from modeling import ModelWithQASSHead, set_seed
 from mrqa_processor import MRQAProcessor
-from utils import init_parser
+from utils import init_parser, get_aug_filename
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -500,7 +497,6 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
         )
     else:
         logger.info("Creating features from dataset file at %s", input_dir)
-
         if not args.data_dir and ((evaluate and not args.predict_file) or (not evaluate and not args.train_file)):
             try:
                 import tensorflow_datasets as tfds
@@ -521,7 +517,7 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
                 examples = processor.get_dev_examples(args.data_dir, filename=args.predict_file)
             else:
                 examples = processor.get_train_examples(args.data_dir, filename=args.train_file)
-        import pdb; pdb.set_trace()
+
         # features, dataset = squad_convert_examples_to_features(examples=examples,tokenizer=tokenizer,max_seq_length=args.max_seq_length,doc_stride=args.doc_stride,max_query_length=args.max_query_length,is_training=not evaluate,return_dataset="pt",threads=args.threads)
         features, dataset = squad_convert_examples_to_features(
             examples=examples,
@@ -548,25 +544,38 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
     return dataset
 
 
+#LOCALLY
+# python run_mrqa.py  --model_type=roberta-base  --model_name_or_path=roberta-base  --qass_head=False  --tokenizer_name=roberta-base  --output_dir="output" --train_file="squad/squad-train-seed-42-num-examples-16.jsonl"  --predict_file="squad/dev.jsonl"  --do_train  --do_eval  --cache_dir=.cache  --max_seq_length=384  --doc_stride=128  --threads=4  --save_steps=50000  --per_gpu_train_batch_size=12  --per_gpu_eval_batch_size=16  --learning_rate=3e-5  --max_answer_length=10  --warmup_ratio=0.1  --min_steps=200  --num_train_epochs=10  --seed=42  --use_cache=False --evaluate_every_epoch=False --overwrite_output_dir
+#REMOTE
+
 
 
 def main():
     parser = init_parser()
     args = parser.parse_args()
 
-    # squad-train-seed-42-num-examples-16.jsonl
-    # squad-train-seed-42-num-examples-16-augs_delete-random_4_insert-word-embed.jsonl
+    # Setup CUDA, GPU & distributed training
+    if args.local_rank == -1 or args.no_cuda:
+        device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
+        args.n_gpu = 0 if args.no_cuda else torch.cuda.device_count()
+    else:  # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
+        torch.cuda.set_device(args.local_rank)
+        device = torch.device("cuda", args.local_rank)
+        torch.distributed.init_process_group(backend="nccl")
+        args.n_gpu = 1
+    args.device = device
+    with open(os.path.join(args.output_dir, 'args.pkl'), 'wb') as f:
+        pickle.dump(args, f)
+    with open(os.path.join(args.output_dir, 'args.txt'), 'w') as f:
+        f.write(str(args))
 
     # Verify data file matches augs type
     if len(args.augs_names): # In case we want to use augmentation
-
-        # Get file name
-        base_filename = args.train_file.split('augs')[-1].split('.')[0]
-        aug_names_count_str = '_'.join([f'{x}-{y}' for x, y in zip(args.augs_names, args.augs_count)])
-        new_f_name = f'{base_filename}-augs_{aug_names_count_str}.jsonl'
-
-        add_aug(args, new_f_name) # Create new file with augs
-        args.train_file = new_f_name #set file to use to new file
+        new_f_name = get_aug_filename(args) # Get file name
+        if not os.path.exists(new_f_name):
+            # Create new file with augs if it doesn't exist
+            add_aug(args, new_f_name)
+        args.train_file = new_f_name #set file to use the aug file
 
     assert args.dataset_format in ["mrqa", "squad"]
 
@@ -601,21 +610,6 @@ def main():
         print("Waiting for debugger attach")
         ptvsd.enable_attach(address=(args.server_ip, args.server_port), redirect_output=True)
         ptvsd.wait_for_attach()
-
-    # Setup CUDA, GPU & distributed training
-    if args.local_rank == -1 or args.no_cuda:
-        device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
-        args.n_gpu = 0 if args.no_cuda else torch.cuda.device_count()
-    else:  # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
-        torch.cuda.set_device(args.local_rank)
-        device = torch.device("cuda", args.local_rank)
-        torch.distributed.init_process_group(backend="nccl")
-        args.n_gpu = 1
-    args.device = device
-    with open(os.path.join(args.output_dir, 'args.pkl'), 'wb') as f:
-        pickle.dump(args, f)
-    with open(os.path.join(args.output_dir, 'args.txt'), 'w') as f:
-        f.write(str(args))
 
     # Setup logging
     logging.basicConfig(
