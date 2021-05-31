@@ -197,7 +197,7 @@ def test_single_aug_addition():
 
 def generate_all_single_aug_exp_data(squad_path):
     augs_names = ['delete-random', 'insert-word-embed', 'sub-word-embed', 'insert-bert-embed','sub-bert-embed']
-    aug_count = 1
+    aug_count = 4
     exp_names = [f'{x}_{aug_count}-count' for x in augs_names]
     for exp_name in exp_names:
         # open folder for expirement
