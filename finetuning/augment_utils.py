@@ -4,19 +4,22 @@ import gzip
 import shutil
 import nlpaug.augmenter.word as naw
 import requests
-from tqdm import tqdm
 import re
 import logging
 logger = logging.getLogger(__name__)
 from utils import init_parser, get_aug_filename
 from tqdm import tqdm
-
-from transformers import AutoTokenizer
-from modeling import set_seed
-
-# Construction 1
-from spacy.tokenizer import Tokenizer
 from spacy.lang.en import English
+import random
+import torch
+import numpy as np
+
+def set_seed(args):
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if args.n_gpu > 0:
+        torch.cuda.manual_seed_all(args.seed)
 
 def download(url, fname):
     resp = requests.get(url, stream=True)
@@ -196,8 +199,8 @@ def test_single_aug_addition():
     print(f'{new_f_name} Exists: {os.path.exists(new_f_name)}')
 
 def generate_all_single_aug_exp_data(squad_path):
-    augs_names = ['delete-random', 'insert-word-embed', 'sub-word-embed', 'insert-bert-embed','sub-bert-embed']
-    aug_count = 1
+    augs_names = ['insert-word-embed', 'sub-word-embed', 'insert-bert-embed','sub-bert-embed', 'delete-random']
+    aug_count = 4
     exp_names = [f'{x}_{aug_count}-count' for x in augs_names]
     for exp_name in exp_names:
         # open folder for expirement
