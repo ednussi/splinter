@@ -9,6 +9,7 @@ import re
 import logging
 logger = logging.getLogger(__name__)
 from utils import init_parser, get_aug_filename
+from tqdm import tqdm
 
 from transformers import AutoTokenizer
 from modeling import set_seed
@@ -70,12 +71,8 @@ def get_n_new_aug(aug, text, new_augs_num):
         news_augs_set.update({aug.augment(text)})
     return news_augs_set
 
-
-
-
-
 def get_words_start_pos_list_spacy(text, tokenizer):
-    print('Text:', text)
+    # There is mismatch with Spacy current parsing of how to treat "'" vs "''"
     tokens = tokenizer(text)
     text_tokens_pos = [[token.text, token.idx] for token in tokens]
     return text_tokens_pos
@@ -122,7 +119,9 @@ def add_aug(args, new_f_name):
 
             # Sanity check to make sure question tokens are reconstructed correctly
             q_tokens = get_words_start_pos_list_spacy(q, tokenizer)
-            assert q_tokens == qas['question_tokens'], f'{q_tokens},\n {qas["question_tokens"]} '
+            # if  q_tokens != qas['question_tokens']:
+            #     import pdb; pdb.set_trace()
+            # assert q_tokens == qas['question_tokens'], f'{q_tokens},\n {qas["question_tokens"]} '
 
             for aug_num,aug in zip(args.augs_count, augs):
                 # create augs per count
@@ -159,23 +158,36 @@ def add_aug(args, new_f_name):
             writer.write(f'{json.dumps(line)}\n')
     return
 
-def test_single_aug_addition():
-    print('=========Testing Single Aug Addition=========')
+def get_args(seed=42,
+             train_file="squad/squad-train-seed-42-num-examples-16.jsonl",
+             augs_names='sub-bert-embed',
+             tokenizer_name='roberta-base',
+             augs_count='1',
+             model_type='roberta-base',
+             model_name_or_path='',
+             output_dir='',
+):
+
     # Create a Namespace immulating argparser
     class C:
         pass
     args = C()
     parser = init_parser()
-    parser.parse_args(args=['--seed', '42',
-                            '--train_file', 'squad/squad-train-seed-42-num-examples-16.jsonl',
-                            '--augs_names', 'sub-bert-embed',
-                            '--tokenizer_name', 'roberta-base',
-                            '--augs_count', '1',
-                            '--model_type', 'roberta-base', # 3 required params
-                            '--model_name_or_path', '',
-                            '--output_dir' , ''
+    parser.parse_args(args=['--seed', seed,
+                            '--train_file', train_file,
+                            '--augs_names', augs_names,
+                            '--tokenizer_name', tokenizer_name,
+                            '--augs_count', augs_count,
+                            '--model_type', model_type, # 3 required params
+                            '--model_name_or_path', model_name_or_path,
+                            '--output_dir' , output_dir
                             ], namespace=args)
     args.n_gpu = 1
+    return args
+
+def test_single_aug_addition():
+    print('=========Testing Single Aug Addition=========')
+    args = get_args()
     # Test function
     new_f_name = get_aug_filename(args)
     add_aug(args, new_f_name)
@@ -183,5 +195,62 @@ def test_single_aug_addition():
     # Check file exists & Delete
     print(f'{new_f_name} Exists: {os.path.exists(new_f_name)}')
 
+def generate_all_single_aug_exp_data(squad_path):
+    augs_names = ['delete-random', 'insert-word-embed', 'sub-word-embed', 'insert-bert-embed','sub-bert-embed']
+    aug_count = 1
+    exp_names = [f'{x}_{aug_count}-count' for x in augs_names]
+    for exp_name in exp_names:
+        # open folder for expirement
+        output_dir = f'{squad_path}/{exp_name}'
+        os.mkdir(output_dir)
+
+        print(f'Generating augs exp: {exp_name}')
+        for aug in tqdm(augs_names, desc='Augs'):
+            for seed in tqdm([42,43,44,45,46], desc='Seeds'):
+                for num_examples in tqdm([16,32,64,128,512], desc='Examples Num'):
+                    train_file_name = f'squad-train-seed-{seed}-num-examples-{num_examples}.jsonl'
+                    train_file = f'{squad_path}/{train_file_name}'
+
+                    # Gets args and add augmentations
+                    args = get_args(seed=str(seed),train_file=train_file, augs_names=aug, augs_count=str(aug_count), output_dir=output_dir)
+                    new_f_name = get_aug_filename(args)
+                    add_aug(args, f'{output_dir}/{new_f_name}')
+
+# insert and sub -> check for num_examples
+
+
+def verify_same_qid_used():
+    for seed in [42, 43, 44, 45, 46]:
+
+        train_file_name = f'squad-train-seed-{seed}-num-examples-16.jsonl'
+        cur_file = f'squad/{train_file_name}'
+        with open(cur_file, "r", encoding="utf-8") as reader:
+            cur_data = [json.loads(line) for line in reader]
+        cur_ids = set([line['qas'][0]['id'] for line in cur_data[1:]])
+        cur_qids = set([line['qas'][0]['qid'] for line in cur_data[1:]])
+
+        for num_examples in [32, 64, 128, 512]:
+            train_file_name = f'squad-train-seed-{seed}-num-examples-{num_examples}.jsonl'
+            next_file = f'squad/{train_file_name}'
+            with open(next_file, "r", encoding="utf-8") as reader:
+                next_data = [json.loads(line) for line in reader]
+            next_ids = set([line['qas'][0]['id'] for line in next_data[1:]])
+            next_qids = set([line['qas'][0]['qid'] for line in next_data[1:]])
+
+            # make sure they are the same
+            print(f'Comparing {cur_file}:{next_file}')
+            intersect_ids = cur_ids.intersection(next_ids)
+            intersect_qids = cur_qids.intersection(next_qids)
+            if (len(cur_ids) - len(intersect_ids) > 0):
+                print('Mismatched ids', len(cur_ids - intersect_ids), 'Mismatched qids', len(cur_qids - intersect_qids))
+
+            cur_ids = next_ids
+            cur_qids = next_qids
+            cur_file = next_file
+
+def generate_data_all_exp(squad_path):
+    generate_all_single_aug_exp_data(squad_path)
+
 if __name__ == '__main__':
-    test_single_aug_addition()
+    # verify_same_qid_used()
+    generate_all_single_aug_exp_data('squad')

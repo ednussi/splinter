@@ -235,7 +235,7 @@ def init_parser():
 
 def get_aug_filename(args):
     # Get file name
-    base_filename = args.train_file.split('augs')[-1].split('.')[0]
+    base_filename = args.train_file.split('augs')[-1].split('.')[0].split('/')[-1]
     aug_names_count_str = '_'.join([f'{x}-{y}' for x, y in zip(args.augs_names, args.augs_count)])
     new_aug_f_name = f'{base_filename}-augs_{aug_names_count_str}.jsonl'
     return new_aug_f_name
