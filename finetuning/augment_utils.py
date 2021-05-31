@@ -146,7 +146,7 @@ def add_aug(args, new_f_name):
                                            'question_tokens': new_question_tokens,
                                            'detected_answers': detected_answers}
 
-                    line_copy['qas'] = augmented_qas
+                    line_copy['qas'] = [augmented_qas]
                     # Now add all the new questions to this line
                     new_jsonl_lines.append(line_copy)
 
@@ -197,7 +197,7 @@ def test_single_aug_addition():
 
 def generate_all_single_aug_exp_data(squad_path):
     augs_names = ['delete-random', 'insert-word-embed', 'sub-word-embed', 'insert-bert-embed','sub-bert-embed']
-    aug_count = 4
+    aug_count = 1
     exp_names = [f'{x}_{aug_count}-count' for x in augs_names]
     for exp_name in exp_names:
         # open folder for expirement
