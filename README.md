@@ -1,6 +1,6 @@
 ## Locally
 
-python run_mrqa.py  --model_type=roberta-base  --model_name_or_path=roberta-base  --qass_head=False  --tokenizer_name=roberta-base  --output_dir=output  --train_file="squad/squad-train-seed-42-num-examples-16.jsonl"  --predict_file="squad/dev.jsonl"  --do_train  --do_eval  --cache_dir=.cache  --max_seq_length=384  --doc_stride=128  --threads=4  --save_steps=50000  --per_gpu_train_batch_size=12  --per_gpu_eval_batch_size=16  --learning_rate=3e-5  --max_answer_length=10  --warmup_ratio=0.1  --min_steps=200  --num_train_epochs=10  --seed=42  --use_cache=False --evaluate_every_epoch=False --overwrite_output_dir
+`python run_mrqa.py  --model_type=roberta-base  --model_name_or_path=roberta-base  --qass_head=False  --tokenizer_name=roberta-base  --output_dir=output  --train_file="squad/squad-train-seed-42-num-examples-16.jsonl"  --predict_file="squad/dev.jsonl"  --do_train  --do_eval  --cache_dir=.cache  --max_seq_length=384  --doc_stride=128  --threads=4  --save_steps=50000  --per_gpu_train_batch_size=12  --per_gpu_eval_batch_size=16  --learning_rate=3e-5  --max_answer_length=10  --warmup_ratio=0.1  --min_steps=200  --num_train_epochs=10  --seed=42  --use_cache=False --evaluate_every_epoch=False --overwrite_output_dir`
 
 ## Work
 
@@ -22,11 +22,16 @@ python run_mrqa.py  --model_type=roberta-base  --model_name_or_path=$MODEL  --qa
 
 This repository was forked on 25th April 2021, from the original splinter repo matching the "[Few-Shot Question Answering by Pretraining Span Selection](https://arxiv.org/abs/2101.00438)" Paper.
 
-## Step-by-Step Reproducing Roberta-base Results
+## Step-by-Step Install
+Maybe needed for `spacy`
+`export BLIS_REALLY_COMPILE=1`
+
+
+## Step-by-Step Reproducing Old Roberta-base Results
 ### Create new virtual env
 ```angular2html
 conda create -n splinter-env python=3.8
-conda cativate splinter-env
+conda activate splinter-env
 ```
 
 ### clone and install requirements
