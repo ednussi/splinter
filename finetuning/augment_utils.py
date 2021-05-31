@@ -229,7 +229,7 @@ def verify_same_qid_used():
         cur_ids = set([line['qas'][0]['id'] for line in cur_data[1:]])
         cur_qids = set([line['qas'][0]['qid'] for line in cur_data[1:]])
 
-        for num_examples in [32, 64, 128, 512]:
+        for num_examples in [32, 64, 128, 256, 512]:
             train_file_name = f'squad-train-seed-{seed}-num-examples-{num_examples}.jsonl'
             next_file = f'squad/{train_file_name}'
             with open(next_file, "r", encoding="utf-8") as reader:
