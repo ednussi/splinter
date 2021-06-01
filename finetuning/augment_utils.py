@@ -199,7 +199,7 @@ def test_single_aug_addition():
     print(f'{new_f_name} Exists: {os.path.exists(new_f_name)}')
 
 def generate_all_single_aug_exp_data(squad_path):
-    augs_names = [augs_names = ['insert-word-embed', 'sub-word-embed', 'insert-bert-embed','sub-bert-embed', 'delete-random']]
+    augs_names = ['insert-word-embed', 'sub-word-embed', 'insert-bert-embed','sub-bert-embed', 'delete-random']
     aug_count = 4
     exp_names = [f'{x}_{aug_count}-count' for x in augs_names]
     for exp_name in exp_names:
