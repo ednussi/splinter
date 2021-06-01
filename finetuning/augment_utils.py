@@ -199,18 +199,17 @@ def test_single_aug_addition():
     print(f'{new_f_name} Exists: {os.path.exists(new_f_name)}')
 
 def generate_all_single_aug_exp_data(squad_path):
-    augs_names = ['insert-word-embed', 'sub-word-embed', 'insert-bert-embed','sub-bert-embed', 'delete-random']
+    augs_names = [augs_names = ['insert-word-embed', 'sub-word-embed', 'insert-bert-embed','sub-bert-embed', 'delete-random']]
     aug_count = 4
     exp_names = [f'{x}_{aug_count}-count' for x in augs_names]
     for exp_name in exp_names:
-        # open folder for expirement
-        output_dir = f'{squad_path}/{exp_name}'
-        os.mkdir(output_dir)
-
         print(f'Generating augs exp: {exp_name}')
         for aug in tqdm(augs_names, desc='Augs'):
+            # open folder for expirement
+            output_dir = f'{squad_path}/{exp_name}/{aug}'
+            os.mkdir(output_dir)
             for seed in tqdm([42,43,44,45,46], desc='Seeds'):
-                for num_examples in tqdm([16,32,64,128,512], desc='Examples Num'):
+                for num_examples in tqdm([16,32,64,128,256], desc='Examples Num'):
                     train_file_name = f'squad-train-seed-{seed}-num-examples-{num_examples}.jsonl'
                     train_file = f'{squad_path}/{train_file_name}'
 
