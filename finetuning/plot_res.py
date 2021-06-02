@@ -45,7 +45,7 @@ def get_f1_em_dict(outputs_path):
 
             for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
                 res_folder_path = f'output-{aug}-{num_examples}-{seed}'
-                res_file = f'{res_folder_path}/eval_results.txt'
+                res_file = f'{outputs_path}/{res_folder_path}/eval_results.txt'
                 if os.path.exists(res_file):
                     with open(res_file, "r") as f:
                         lines = f.readlines()
