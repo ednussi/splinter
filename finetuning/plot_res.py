@@ -126,4 +126,5 @@ def plot_f1_em_dict():
     plt.show()
 
 if __name__ == '__main__':
-
+    outputs_path = 'outputs'
+    get_f1_em_dict(outputs_path)
