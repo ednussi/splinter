@@ -176,7 +176,7 @@ def plot_f1_em_dicts(names, dicts):
 def get_f1_em_dict_num_aug_exp():
     outputs_path = '/cs/labs/gabis/ednussi/splinter/finetuning/outputs/num_augs_exp'
 
-    for aug in ['sub-word', 'insert-bert']:
+    for aug in ['delete-random','sub-word', 'insert-bert']:
 
         res_dict = {}
         for num_augs in [1, 2, 3]:
@@ -194,11 +194,25 @@ def get_f1_em_dict_num_aug_exp():
                         em = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_exact = ')][0])
                         res_dict[f'{num_examples}-{seed}'] = {'exact':em, 'f1':f1}
 
-        # plot this aug
-        print(aug)
-        print(res_dict)
+            # plot this aug
+            print(aug, num_augs)
+            print(res_dict)
 
 def plot_june_ninth_res():
+    insert_bert = {'16-42': {'exact': ['4.673'], 'f1': ['7.727']}, '16-43': {'exact': ['6.262'], 'f1': ['10.371']},
+     '16-44': {'exact': ['5.815'], 'f1': ['11.253']}, '16-45': {'exact': ['1.485'], 'f1': ['4.081']},
+     '16-46': {'exact': ['3.207'], 'f1': ['4.574']}, '32-42': {'exact': ['9.146'], 'f1': ['13.918']},
+     '32-43': {'exact': ['10.574'], 'f1': ['16.517']}, '32-44': {'exact': ['8.927'], 'f1': ['12.375']},
+     '32-45': {'exact': ['10.859'], 'f1': ['15.279']}, '32-46': {'exact': ['12.763'], 'f1': ['19.023']},
+     '64-42': {'exact': ['17.912'], 'f1': ['22.899']}, '64-43': {'exact': ['23.575'], 'f1': ['31.557']},
+     '64-44': {'exact': ['28.629'], 'f1': ['36.973']}, '64-45': {'exact': ['8.118'], 'f1': ['11.196']},
+     '64-46': {'exact': ['24.450'], 'f1': ['32.288']}, '128-42': {'exact': ['30.894'], 'f1': ['38.574']},
+     '128-43': {'exact': ['36.861'], 'f1': ['44.864']}, '128-44': {'exact': ['44.608'], 'f1': ['53.243']},
+     '128-45': {'exact': ['27.382'], 'f1': ['32.493']}, '128-46': {'exact': ['42.762'], 'f1': ['51.470']},
+     '256-42': {'exact': ['42.239'], 'f1': ['49.223']}, '256-43': {'exact': ['49.281'], 'f1': ['57.320']},
+     '256-44': {'exact': ['51.870'], 'f1': ['61.071']}, '256-45': {'exact': ['43.856'], 'f1': ['51.017']},
+     '256-46': {'exact': ['47.759'], 'f1': ['56.813']}}
+
     return
 
 def plot_june_first_res():
