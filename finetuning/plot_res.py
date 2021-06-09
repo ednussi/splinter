@@ -221,5 +221,5 @@ def plot_june_first_res():
 if __name__ == '__main__':
     # outputs_path = 'outputs'
     # get_f1_em_dict(outputs_path)
-
-    plot_june_first_res()
+    get_f1_em_dict_num_aug_exp()
+    # plot_june_first_res()
