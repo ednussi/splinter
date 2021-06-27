@@ -3,6 +3,7 @@ import pandas as pd
 from tqdm import tqdm
 import logging
 logger = logging.getLogger(__name__)
+import os
 # from spacy.lang.en import English
 
 def train_file_to_df(train_file_path):
@@ -13,7 +14,6 @@ def train_file_to_df(train_file_path):
     df = pd.DataFrame()  # columns=['id','qid','answers','question','question_tokens','detected_answers']
 
     for line in tqdm(input_data[1:], desc='Enhancing with augs'):
-        print(line.keys())
         df = df.append(line, ignore_index=True)
 
     df['qas']
@@ -29,7 +29,6 @@ def split_qas_to_single_qac_triplets(df):
                 split_df = split_df.append([row])
         else:
             split_df = split_df.append(row)
-    print(f'Strated with {len(df)} and ended with {len(split_df)}')
     return split_df
 
 
@@ -43,8 +42,6 @@ def get_words_start_pos_list_spacy(text, tokenizer):
     #nlp = English()
     #spacy_english_tokenizer = nlp.tokenizer
     # get_words_start_pos_list_spacy(combined_context, spacy_english_tokenizer)
-
-
 
 def get_combined_de(de1, de2):
     combined_context = de1['context'] + ' ' + de2['context']
@@ -102,9 +99,20 @@ def write_df(df, name):
             writer.write(f'{json.dumps(line)}\n')
     return
 
+
+def create_moasic_unite_exp_data(squad_path):
+    exp_name = 'moasic_unite'
+    # open folder for expirement
+    output_dir = f'{squad_path}/{exp_name}'
+    os.mkdir(output_dir)
+    for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
+        for num_examples in tqdm([16, 32, 64, 128, 256], desc='Examples Num'):
+            train_file_name = f'squad-train-seed-{seed}-num-examples-{num_examples}.jsonl'
+            df = train_file_to_df(f'{squad_path}/{train_file_name}')
+            df = split_qas_to_single_qac_triplets(df)
+            uni_df = qas_pairs_unite(df)
+            write_df(uni_df, f'{output_dir}/squad-train-seed-{seed}-num-examples-{num_examples}.jsonl')
+
 if __name__ == '__main__':
-    train_file_path = 'squad/squad-train-seed-42-num-examples-16.jsonl'
-    df = train_file_to_df(train_file_path)
-    df = split_qas_to_single_qac_triplets(df)
-    uni_df = qas_pairs_unite(df)
-    write_df(uni_df, 'squad/squad-train-seed-42-num-examples-16-TEST.jsonl')
+    squad_path = 'squad'
+    create_moasic_unite_exp_data(squad_path)
