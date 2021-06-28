@@ -169,6 +169,12 @@ def train(args, train_dataset, model, tokenizer):
 
     best_results = {"exact": 0, "f1": 0, "global_step": 0}
 
+    # write loss into csv file
+    csv_entery_num =0
+    csv_columns = ['global_step','lr', 'loss', 'loss_step']
+    f = open(f"{args.output_dir}/log_lr_loss.csv", "w")
+    f.write(f',{",".join(csv_columns)}\n')
+
     for _ in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
@@ -235,6 +241,11 @@ def train(args, train_dataset, model, tokenizer):
                     logger.info(f"loss step {global_step}: {(tr_loss - logging_loss) / args.logging_steps}")
                     logging_loss = tr_loss
 
+                # Log Loss
+                save_string = f'{csv_entery_num},{global_step},{scheduler.get_lr()[0]},{(tr_loss - logging_loss) / args.logging_steps},{(tr_loss - logging_loss) / args.logging_steps}\n'
+                f.write(save_string)
+                csv_entery_num += 1
+
                 # Only evaluate when single GPU otherwise metrics may not average well
                 if args.local_rank == -1 and args.eval_steps > 0 and global_step % args.eval_steps == 0:
                     results = evaluate(args, model, tokenizer)
@@ -284,7 +295,7 @@ def train(args, train_dataset, model, tokenizer):
 
     if args.local_rank in [-1, 0]:
         tb_writer.close()
-
+    f.close() # close loss / lr log
     best_results_path = os.path.join(args.output_dir, "best_training_eval_results.json")
     json.dump(best_results, open(best_results_path, 'w'))
 
