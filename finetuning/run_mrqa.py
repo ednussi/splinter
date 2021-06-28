@@ -178,7 +178,6 @@ def train(args, train_dataset, model, tokenizer):
     for _ in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
-
             # Skip past any already trained steps if resuming training
             if steps_trained_in_current_epoch > 0:
                 steps_trained_in_current_epoch -= 1
@@ -242,7 +241,7 @@ def train(args, train_dataset, model, tokenizer):
                     logging_loss = tr_loss
 
                 # Log Loss
-                save_string = f'{csv_entery_num},{global_step},{scheduler.get_lr()[0]},{(tr_loss - logging_loss) / args.logging_steps},{(tr_loss - logging_loss) / args.logging_steps}\n'
+                save_string = f'{csv_entery_num},{global_step},{scheduler.get_lr()[0]},{tr_loss},{(tr_loss - logging_loss) / args.logging_steps}\n'
                 f.write(save_string)
                 csv_entery_num += 1
 
@@ -579,13 +578,14 @@ def main():
     with open(os.path.join(args.output_dir, 'args.txt'), 'w') as f:
         f.write(str(args))
 
-    # Verify data file matches augs type
-    if len(args.augs_names): # In case we want to use augmentation
-        new_f_name = get_aug_filename(args) # Get file name
-        if not os.path.exists(new_f_name):
-            # Create new file with augs if it doesn't exist
-            add_aug(args, new_f_name)
-        args.train_file = new_f_name #set file to use the aug file
+    # VERIFICATION STEP
+    # # Verify data file matches augs type
+    # if len(args.augs_names): # In case we want to use augmentation
+    #     new_f_name = get_aug_filename(args) # Get file name
+    #     if not os.path.exists(new_f_name):
+    #         # Create new file with augs if it doesn't exist
+    #         add_aug(args, new_f_name)
+    #     args.train_file = new_f_name #set file to use the aug file
 
     assert args.dataset_format in ["mrqa", "squad"]
 
