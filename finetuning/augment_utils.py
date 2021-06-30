@@ -13,6 +13,9 @@ from spacy.lang.en import English
 import random
 import torch
 import numpy as np
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE" # Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized.
+import pandas as pd
 
 def set_seed(args):
     random.seed(args.seed)
@@ -91,7 +94,6 @@ def get_words_start_pos_list(text, tokenizer):
     print(text_tokens)
     return text_tokens
 
-
 def add_aug(args, new_f_name):
     logger.info(f'Loading Examples from file {args.train_file}')
     # open file
@@ -160,6 +162,101 @@ def add_aug(args, new_f_name):
         for line in new_jsonl_lines:
             writer.write(f'{json.dumps(line)}\n')
     return
+
+# ==================================== Text Mosaic Augs ====================================
+
+
+def mosaic_aug_1():
+    return
+
+def mosaic_aug_2():
+    return
+
+def train_file_to_df(train_file_path):
+    # open file
+    with open(train_file_path, "r", encoding="utf-8") as reader:
+        input_data = [json.loads(line) for line in reader]
+
+    df = pd.DataFrame() #columns=['id','qid','answers','question','question_tokens','detected_answers']
+
+    for line in tqdm(input_data[1:], desc='Enhancing with augs'):
+        print(line.keys())
+        df.append(line, ignore_index=True)
+
+    return df
+
+def create_mosaic_data(args):
+    print('Generating Mosaic Data')
+    logger.info(f'Generating Mosaic Data')
+    logger.info(f'Loading Examples from file {args.train_file}')
+
+    # open file
+    with open(args.train_file, "r", encoding="utf-8") as reader:
+        input_data = [json.loads(line) for line in reader]
+
+    # Get augs
+    name_to_mosaic_aug_dict = {'mosaic_aug_1': mosaic_aug_1,
+                               'mosaic_aug_2': mosaic_aug_2}
+    augs = [name_to_mosaic_aug_dict[x] for x in args.augs_names]
+
+    # Get Spacy tokenizer with the default settings for English including punctuation rules and exceptions
+    nlp = English()
+    tokenizer = nlp.tokenizer
+
+    new_jsonl_lines = []
+    header_line = input_data[0]
+    for line in tqdm(input_data[1:], desc='Enhancing with augs'):
+        line_copy = line.copy()
+        new_jsonl_lines.append(line)
+        # for every q-a-c example stored
+        for qas in line['qas']:
+            answers = qas['answers']
+            q = qas['question']
+            id = qas['id']
+            qid = qas['qid']
+            # q_tokens = qas['question_tokens']
+            detected_answers = qas['detected_answers']
+
+            for aug_num, aug in zip(args.augs_count, augs):
+                # create augs per count
+                set_seed(args)  # initialize seed
+                news_q_augs_set = get_n_new_aug(aug, q, int(aug_num))
+
+                for new_aug_q_i, new_aug_q in enumerate(news_q_augs_set):
+                    # question/answer/context tokens in the jsonl file are just the position each word starts in
+                    new_question_tokens = get_words_start_pos_list_spacy(new_aug_q, tokenizer)
+
+                    # # Save in MRQAExample internal format
+                    # MRQAExample(qas_id=qas_id, question_text=question_text, question_tokens=question_tokens,
+                    #             context_text=context, context_tokens=context_tokens,
+                    #             answer_text=answer_text,
+                    #             start_position_character=start_position_character, answers=answers)
+
+                    # append new example
+                    augmented_qas = {'answers': answers,
+                                     'question': new_aug_q,
+                                     'id': f'{id}_{new_aug_q_i}',
+                                     'qid': f'{qid}_{new_aug_q_i}',
+                                     'question_tokens': new_question_tokens,
+                                     'detected_answers': detected_answers}
+
+                    line_copy['qas'] = [augmented_qas]
+                    # Now add all the new questions to this line
+                    new_jsonl_lines.append(line_copy)
+
+    # Write as a new jsonl file
+    new_f_name = ''
+    logger.info(f'Writing new augmented data file to {new_f_name}')
+    with open(new_f_name, "w", encoding="utf-8") as writer:
+        writer.write(f'{json.dumps(header_line)}\n')
+        for line in new_jsonl_lines:
+            writer.write(f'{json.dumps(line)}\n')
+    return
+
+
+
+# ================================= END of Text Mosaic Augs ================================
+
 
 def get_args(seed=42,
              train_file="squad/squad-train-seed-42-num-examples-16.jsonl",
@@ -253,6 +350,37 @@ def verify_same_qid_used():
 def generate_data_all_exp(squad_path):
     generate_all_single_aug_exp_data(squad_path)
 
+
+def generate_num_aug_exp(squad_path):
+    augs_names = ['insert-bert-embed', 'sub-word-embed', 'delete-random']
+    os.mkdir(f'{squad_path}/num_augs_exp')
+    for aug_count in [1, 2, 3, 4]:
+        exp_names = [f'{x}_{aug_count}-count' for x in augs_names]
+        for exp_name in exp_names:
+            print(f'Generating augs exp: {exp_name}')
+            os.mkdir(f'{squad_path}/num_augs_exp/{exp_name}')
+            for aug in tqdm(augs_names, desc='Augs'):
+                # open folder for expirement
+                output_dir = f'{squad_path}/num_augs_exp/{exp_name}/{aug}'
+                os.mkdir(output_dir)
+                for seed in tqdm([42,43,44,45,46], desc='Seeds'):
+                    for num_examples in tqdm([16,32,64,128,256], desc='Examples Num'):
+                        train_file_name = f'squad-train-seed-{seed}-num-examples-{num_examples}.jsonl'
+                        train_file = f'{squad_path}/{train_file_name}'
+
+                        # Gets args and add augmentations
+                        args = get_args(seed=str(seed),train_file=train_file, augs_names=aug, augs_count=str(aug_count), output_dir=output_dir)
+                        new_f_name = get_aug_filename(args)
+                        add_aug(args, f'{output_dir}/{new_f_name}')
+
 if __name__ == '__main__':
     # verify_same_qid_used()
-    generate_all_single_aug_exp_data('squad')
+    # squad_path = 'squad'
+    # generate_all_single_aug_exp_data('squad')
+    # generate_num_aug_exp(squad_path)
+
+
+    ####
+    train_file_path = 'squad/squad-train-seed-42-num-examples-16.jsonl'
+    df = train_file_to_df(train_file_path)
+    print(df)
