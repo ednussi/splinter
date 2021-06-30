@@ -4,7 +4,11 @@ from tqdm import tqdm
 import logging
 logger = logging.getLogger(__name__)
 import os
+import time
 # from spacy.lang.en import English
+
+from copy import deepcopy
+
 
 def train_file_to_df(train_file_path):
     # open file
@@ -44,19 +48,40 @@ def get_words_start_pos_list_spacy(text, tokenizer):
     # get_words_start_pos_list_spacy(combined_context, spacy_english_tokenizer)
 
 def get_combined_de(de1, de2):
+    print(de1['qas'][0]['detected_answers'])
     combined_context = de1['context'] + ' ' + de2['context']
     row2_updated_context_tokens = [[x[0], x[1] + len(de1['context']) + 1] for x in de2['context_tokens']]
     context_tokens = de1['context_tokens'] + row2_updated_context_tokens
     combined_id = de1['id'] + '_' + de2['id']
     row2_updated_qas = de2['qas'][0]
     for det_ans_i, det_ans in enumerate(row2_updated_qas['detected_answers']):
+        begin_c = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][0]
+        end_c = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][1]
+        old_char_span = de2['context'][begin_c:end_c+1]
+
         row1_context_length = len(de1['context'])
+        char_span_length = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][1] - row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][1]
         row2_updated_qas['detected_answers'][det_ans_i]['char_spans'] = [
             [x[0] + row1_context_length + 1, x[1] + row1_context_length + 1] for x in
             row2_updated_qas['detected_answers'][det_ans_i]['char_spans']]
         row2_updated_qas['detected_answers'][det_ans_i]['token_spans'] = [
             [x[0] + len(de1['context_tokens']), x[1] + len(de1['context_tokens'])] for x in
             row2_updated_qas['detected_answers'][det_ans_i]['token_spans']]
+
+        begin_c = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][0]
+        end_c = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][1]
+
+        DEBUG_MRQA = False
+        if DEBUG_MRQA:
+            if combined_context[begin_c:end_c] != de2['qas'][0]['answers'][0].lower() != old_char_span:
+                print('Problems:\n')
+                time.sleep(1)
+                print('new_char_span:', combined_context[begin_c:end_c+1])
+                print('Answer in dataexample:', de2['qas'][0]['answers'][0])
+                print('old_char_span:', old_char_span)
+                import pdb;pdb.set_trace()
+                print('next..')
+
     combined_qas = [de1['qas'][0], row2_updated_qas]
     return combined_qas, context_tokens, combined_context, combined_id
 
@@ -65,19 +90,19 @@ def qas_pairs_unite(df):
     for i in range(0, len(df), 2):
         row1 = df.iloc[i]
         row2 = df.iloc[i + 1]
+        row1_copy = pd.Series(deepcopy(row1.to_dict()))
+        row2_copy = pd.Series(deepcopy(row2.to_dict()))
         # insert in both regular order and oppisite in concatination
         combined_qas, context_tokens, combined_context, combined_id = get_combined_de(row1, row2)
         united_df = united_df.append({'id':combined_id,
                                       'context':combined_context,
                                       'context_tokens':context_tokens,
                                       'qas':combined_qas},ignore_index=True)
-
-        combined_qas, context_tokens, combined_context, combined_id = get_combined_de(row2, row1)
+        combined_qas, context_tokens, combined_context, combined_id = get_combined_de(row2_copy, row1_copy)
         united_df = united_df.append({'id':combined_id,
                                       'context':combined_context,
                                       'context_tokens':context_tokens,
                                       'qas':combined_qas},ignore_index=True)
-
     return united_df
 
 # def window_example
@@ -101,9 +126,12 @@ def write_df(df, name):
 
 
 def create_moasic_unite_exp_data(squad_path):
-    exp_name = 'moasic_unite'
+    exp_name = 'mosaic_unite'
     # open folder for expirement
     output_dir = f'{squad_path}/{exp_name}'
+    while os.path.exists(output_dir):
+        exp_name += '_new'
+        output_dir = f'{squad_path}/{exp_name}'
     os.mkdir(output_dir)
     for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
         for num_examples in tqdm([16, 32, 64, 128, 256], desc='Examples Num'):
@@ -114,5 +142,11 @@ def create_moasic_unite_exp_data(squad_path):
             write_df(uni_df, f'{output_dir}/squad-train-seed-{seed}-num-examples-{num_examples}.jsonl')
 
 if __name__ == '__main__':
+    # train_file_name = f'squad/moasic_unite/squad-train-seed-42-num-examples-16.jsonl'
+    # df = train_file_to_df(train_file_name)
+    # df2 = split_qas_to_single_qac_triplets(df)
+    # import pdb; pdb.set_trace()
+    # print('end')
+    # Create Data
     squad_path = 'squad'
     create_moasic_unite_exp_data(squad_path)
