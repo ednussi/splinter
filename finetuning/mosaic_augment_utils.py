@@ -48,7 +48,6 @@ def get_words_start_pos_list_spacy(text, tokenizer):
     # get_words_start_pos_list_spacy(combined_context, spacy_english_tokenizer)
 
 def get_combined_de(de1, de2):
-    print(de1['qas'][0]['detected_answers'])
     combined_context = de1['context'] + ' ' + de2['context']
     row2_updated_context_tokens = [[x[0], x[1] + len(de1['context']) + 1] for x in de2['context_tokens']]
     context_tokens = de1['context_tokens'] + row2_updated_context_tokens
@@ -105,8 +104,43 @@ def qas_pairs_unite(df):
                                       'qas':combined_qas},ignore_index=True)
     return united_df
 
-# def window_example
+def qas_clique_unite(df):
+    united_df = pd.DataFrame()
+    for i in range(0, len(df)):
+        row1 = df.iloc[i]
+        for j in range(i+1, len(df)):
+            row2 = df.iloc[j]
+            row1_copy = pd.Series(deepcopy(row1.to_dict()))
+            row2_copy = pd.Series(deepcopy(row2.to_dict()))
+            # insert in both regular order and oppisite in concatination
+            combined_qas, context_tokens, combined_context, combined_id = get_combined_de(row1, row2)
+            united_df = united_df.append({'id':combined_id,
+                                          'context':combined_context,
+                                          'context_tokens':context_tokens,
+                                          'qas':combined_qas},ignore_index=True)
+            combined_qas, context_tokens, combined_context, combined_id = get_combined_de(row2_copy, row1_copy)
+            united_df = united_df.append({'id':combined_id,
+                                          'context':combined_context,
+                                          'context_tokens':context_tokens,
+                                          'qas':combined_qas},ignore_index=True)
+    return united_df
 
+
+def split_dataframe(df, chunk_size = 8):
+    chunks = list()
+    num_chunks = len(df) // chunk_size + 1
+    for i in range(num_chunks):
+        chunks.append(df[i*chunk_size:(i+1)*chunk_size])
+    return chunks
+
+def qas_npairs_unite(df, pairs):
+    # Divide and runs in clique - aggrigate in end
+    npairs_df = pd.DataFrame()
+    for df_chunk in split_dataframe(df, chunk_size=pairs):
+        united_df = qas_clique_unite(df_chunk)
+        npairs_df = pd.concat([npairs_df, united_df], ignore_index=True)
+
+    return npairs_df
 
 def write_df(df, name):
     new_jsonl_lines = []
@@ -141,6 +175,23 @@ def create_moasic_unite_exp_data(squad_path):
             uni_df = qas_pairs_unite(df)
             write_df(uni_df, f'{output_dir}/squad-train-seed-{seed}-num-examples-{num_examples}.jsonl')
 
+def create_moasic_unite_npairs_exp_data(squad_path, pairs=8):
+    exp_name = f'mosaic_unite_npairs-{pairs}'
+    # open folder for expirement
+    output_dir = f'{squad_path}/{exp_name}'
+    while os.path.exists(output_dir):
+        exp_name += '_new'
+        output_dir = f'{squad_path}/{exp_name}'
+    os.mkdir(output_dir)
+    for num_examples in tqdm([256, 128, 64, 32, 16], desc='Examples Num'):
+        for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
+            train_file_name = f'squad-train-seed-{seed}-num-examples-{num_examples}.jsonl'
+            df = train_file_to_df(f'{squad_path}/{train_file_name}')
+            df = split_qas_to_single_qac_triplets(df)
+            uni_df = qas_npairs_unite(df, pairs)
+            write_df(uni_df, f'{output_dir}/squad-train-seed-{seed}-num-examples-{num_examples}.jsonl')
+
+
 if __name__ == '__main__':
     # train_file_name = f'squad/moasic_unite/squad-train-seed-42-num-examples-16.jsonl'
     # df = train_file_to_df(train_file_name)
@@ -149,4 +200,4 @@ if __name__ == '__main__':
     # print('end')
     # Create Data
     squad_path = 'squad'
-    create_moasic_unite_exp_data(squad_path)
+    create_moasic_unite_npairs_exp_data(squad_path, pairs=8)
