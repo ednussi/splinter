@@ -22,7 +22,7 @@ import os
 import pickle
 import timeit
 import shutil
-
+import time
 import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
@@ -171,13 +171,14 @@ def train(args, train_dataset, model, tokenizer):
 
     # write loss into csv file
     csv_entery_num =0
-    csv_columns = ['global_step','lr', 'loss', 'loss_step']
+    csv_columns = ['global_step','lr', 'loss', 'loss_step','step_times','num_step']
     f = open(f"{args.output_dir}/log_lr_loss.csv", "w")
     f.write(f',{",".join(csv_columns)}\n')
 
     for _ in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
+            start_step_time = time.time()
             # Skip past any already trained steps if resuming training
             if steps_trained_in_current_epoch > 0:
                 steps_trained_in_current_epoch -= 1
@@ -233,6 +234,9 @@ def train(args, train_dataset, model, tokenizer):
                 model.zero_grad()
                 global_step += 1
 
+                # time
+                step_time = time.time() - start_step_time
+
                 # Log metrics
                 if args.local_rank in [-1, 0] and args.logging_steps > 0 and global_step % args.logging_steps == 0:
                     tb_writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
@@ -241,7 +245,7 @@ def train(args, train_dataset, model, tokenizer):
                     logging_loss = tr_loss
 
                 # Log Loss
-                save_string = f'{csv_entery_num},{global_step},{scheduler.get_lr()[0]},{tr_loss},{(tr_loss - logging_loss) / args.logging_steps}\n'
+                save_string = f'{csv_entery_num},{global_step},{scheduler.get_lr()[0]},{tr_loss},{(tr_loss - logging_loss) / args.logging_steps},{step_time},{step}\n'
                 f.write(save_string)
                 csv_entery_num += 1
 
