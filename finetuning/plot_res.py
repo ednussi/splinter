@@ -198,6 +198,30 @@ def get_f1_em_dict_num_aug_exp():
             print(aug, num_augs)
             print(res_dict)
 
+def get_f1_em_dict_mosaic_unite():
+    outputs_path = '/cs/labs/gabis/ednussi/splinter/finetuning/outputs'
+
+    for exp in ['mosaic_unite','mosaic_unite_npairs-4', 'mosaic_unite_npairs-8']:
+
+        res_dict = {}
+        for num_examples in tqdm([16, 32, 64, 128, 256], desc='Examples Num'):
+
+            for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
+
+                res_folder_path = f'/{exp}/output-{num_examples}-{seed}'
+                res_file = f'{outputs_path}/{res_folder_path}/eval_results.txt'
+                if os.path.exists(res_file):
+                    with open(res_file, "r") as f:
+                        lines = f.readlines()
+
+                    f1 = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_f1 = ')][0])
+                    em = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_exact = ')][0])
+                    res_dict[f'{num_examples}-{seed}'] = {'exact':em, 'f1':f1}
+
+        # plot this aug
+        print(aug, num_augs)
+        print(res_dict)
+
 def plot_june_ninth_res():
     insert_bert = {'16-42': {'exact': ['4.673'], 'f1': ['7.727']}, '16-43': {'exact': ['6.262'], 'f1': ['10.371']},
      '16-44': {'exact': ['5.815'], 'f1': ['11.253']}, '16-45': {'exact': ['1.485'], 'f1': ['4.081']},
@@ -238,5 +262,6 @@ def plot_june_first_res():
 if __name__ == '__main__':
     # outputs_path = 'outputs'
     # get_f1_em_dict(outputs_path)
-    get_f1_em_dict_num_aug_exp()
+    # get_f1_em_dict_num_aug_exp()
     # plot_june_first_res()
+    get_f1_em_dict_mosaic_unite()
