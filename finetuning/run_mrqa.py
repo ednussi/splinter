@@ -173,6 +173,7 @@ def train(args, train_dataset, model, tokenizer):
     csv_entery_num =0
     csv_columns = ['global_step','lr', 'loss', 'loss_step','step_times','num_step']
     f = open(f"{args.output_dir}/log_lr_loss.csv", "w")
+    import pdb; pdb.set_trace()
     f.write(f',{",".join(csv_columns)}\n')
 
     for _ in train_iterator:
