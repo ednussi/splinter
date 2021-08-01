@@ -12,7 +12,9 @@
 
 2) `srun --pty --gres=gpu:rtx2080 bash`
 
-3)
+3) `sbatch --time=2:0:0 --gres=gpu:rtx2080:1 sh_runs/run_baseline.sh`
+
+4) Manually
 ```angular2html
 cd /cs/labs/gabis/ednussi/
 source venv_splinter/bin/activate
