@@ -219,7 +219,7 @@ def get_f1_em_dict_mosaic_unite():
                     res_dict[f'{num_examples}-{seed}'] = {'exact':em, 'f1':f1}
 
         # plot this aug
-        print(aug, num_augs)
+        print(f'{'='*30 + exp + '='*30}')
         print(res_dict)
 
 def plot_june_ninth_res():
