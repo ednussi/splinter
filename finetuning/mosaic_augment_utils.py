@@ -1,8 +1,6 @@
 import json
 import pandas as pd
 from tqdm import tqdm
-import logging
-logger = logging.getLogger(__name__)
 import os
 import time
 # from spacy.lang.en import English
@@ -28,13 +26,24 @@ def train_file_to_df(train_file_path):
 def split_qas_to_single_qac_triplets(df):
     split_df = pd.DataFrame()
     for i, row in df.iterrows():
-        if len(row['qas']) > 1:
+        qas_len = len(row['qas'])
+        if qas_len > 1:
             for qas_triplet in row['qas']:
-                split_df = split_df.append([row])
+                row_copy = pd.Series(deepcopy(row.to_dict()))
+                row_copy['qas'] = [qas_triplet]
+                split_df = split_df.append(row_copy, ignore_index=True)
         else:
             split_df = split_df.append(row)
-    return split_df
 
+    if len(split_df) != len(df):
+        print(f'Strated with {len(df)} and ended with {len(split_df)}')
+
+    # sanity check
+    if not all([len(x)==1 for x in split_df['qas']]):
+        exit('problem splitting df')
+    
+    
+    return split_df
 
 
 def get_words_start_pos_list_spacy(text, tokenizer):
@@ -150,7 +159,6 @@ def write_df(df, name):
         new_jsonl_lines.append(row.to_dict())
 
     # Write as a new jsonl file
-    logger.info(f'Writing new augmented data file to {name}')
     print(f'Writing new augmented data file to {name}')
     with open(name, "w", encoding="utf-8") as writer:
         writer.write(f'{json.dumps(header)}\n')
@@ -175,8 +183,10 @@ def create_moasic_unite_exp_data(squad_path):
             uni_df = qas_pairs_unite(df)
             write_df(uni_df, f'{output_dir}/squad-train-seed-{seed}-num-examples-{num_examples}.jsonl')
 
-def create_moasic_unite_npairs_exp_data(squad_path, pairs=8):
+def create_moasic_unite_npairs_exp_data(squad_path, pairs=8, final_single_qac_triplets=False):
     exp_name = f'mosaic_unite_npairs-{pairs}'
+    if final_single_qac_triplets:
+        exp_name+='-singleqac'
     # open folder for expirement
     output_dir = f'{squad_path}/{exp_name}'
     while os.path.exists(output_dir):
@@ -185,10 +195,13 @@ def create_moasic_unite_npairs_exp_data(squad_path, pairs=8):
     os.mkdir(output_dir)
     for num_examples in tqdm([256, 128, 64, 32, 16], desc='Examples Num'):
         for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
-            train_file_name = f'squad-train-seed-{seed}-num-examples-{num_examples}.jsonl'
+            train_file_name = f'baseline/squad-train-seed-{seed}-num-examples-{num_examples}.jsonl'
             df = train_file_to_df(f'{squad_path}/{train_file_name}')
             df = split_qas_to_single_qac_triplets(df)
             uni_df = qas_npairs_unite(df, pairs)
+
+            if final_single_qac_triplets:
+                uni_df = split_qas_to_single_qac_triplets(uni_df)
             write_df(uni_df, f'{output_dir}/squad-train-seed-{seed}-num-examples-{num_examples}.jsonl')
 
 
@@ -200,4 +213,6 @@ if __name__ == '__main__':
     # print('end')
     # Create Data
     squad_path = 'squad'
-    create_moasic_unite_npairs_exp_data(squad_path, pairs=8)
+    create_moasic_unite_npairs_exp_data(squad_path, pairs=2, final_single_qac_triplets=True)
+    create_moasic_unite_npairs_exp_data(squad_path, pairs=4, final_single_qac_triplets=True)
+    create_moasic_unite_npairs_exp_data(squad_path, pairs=8, final_single_qac_triplets=True)
