@@ -177,6 +177,7 @@ def train(args, train_dataset, model, tokenizer):
 
     for _ in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
+        import pdb; pdb.set_trace()
         for step, batch in enumerate(epoch_iterator):
             start_step_time = time.time()
             # Skip past any already trained steps if resuming training
