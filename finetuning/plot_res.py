@@ -222,6 +222,32 @@ def get_f1_em_dict_mosaic_unite():
         print(f'============ {exp} ============')
         print(res_dict)
 
+def get_f1_em_dict_mosaic_unite_vs_unite_single():
+    outputs_path = '/cs/labs/gabis/ednussi/splinter/finetuning/outputs'
+
+    for exp in ['baseline', 'mosaic_unite','mosaic-unite-npairs-2-singleqac',
+    'mosaic_unite_npairs-4','mosaic_unite_npairs-4-singleqac', 
+    'mosaic_unite_npairs-8', 'mosaic_unite_npairs-8-singleqac']:
+
+        res_dict = {}
+        for num_examples in tqdm([16, 32, 64, 128, 256], desc='Examples Num'):
+
+            for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
+
+                res_folder_path = f'/{exp}/output-{num_examples}-{seed}'
+                res_file = f'{outputs_path}/{res_folder_path}/eval_results.txt'
+                if os.path.exists(res_file):
+                    with open(res_file, "r") as f:
+                        lines = f.readlines()
+
+                    f1 = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_f1 = ')][0])
+                    em = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_exact = ')][0])
+                    res_dict[f'{num_examples}-{seed}'] = {'exact':em, 'f1':f1}
+
+        # plot this aug
+        print(f'============ {exp} ============')
+        print(res_dict)
+
 def plot_june_ninth_res():
     insert_bert = {'16-42': {'exact': ['4.673'], 'f1': ['7.727']}, '16-43': {'exact': ['6.262'], 'f1': ['10.371']},
      '16-44': {'exact': ['5.815'], 'f1': ['11.253']}, '16-45': {'exact': ['1.485'], 'f1': ['4.081']},
@@ -259,9 +285,20 @@ def plot_june_first_res():
     dicts = [insert_word, sub_word, insert_bert, sub_bert]
     plot_f1_em_dicts(names, dicts)
 
+
+def plot_mosaic_unite():
+    mosaic_unite = {'16-42': {'exact': ['6.243'], 'f1': ['8.402']}, '16-43': {'exact': ['10.821'], 'f1': ['16.966']}, '16-44': {'exact': ['8.718'], 'f1': ['14.004']}, '16-45': {'exact': ['4.131'], 'f1': ['9.880']}, '16-46': {'exact': ['5.273'], 'f1': ['7.045']}, '32-42': {'exact': ['14.685'], 'f1': ['20.597']}, '32-43': {'exact': ['12.972'], 'f1': ['19.545']}, '32-44': {'exact': ['21.233'], 'f1': ['29.625']}, '32-45': {'exact': ['17.398'], 'f1': ['24.793']}, '32-46': {'exact': ['15.837'], 'f1': ['22.776']}, '64-42': {'exact': ['27.258'], 'f1': ['34.719']}, '64-43': {'exact': ['26.354'], 'f1': ['34.528']}, '64-44': {'exact': ['30.484'], 'f1': ['39.154']}, '64-45': {'exact': ['27.287'], 'f1': ['35.167']}, '64-46': {'exact': ['24.936'], 'f1': ['30.956']}, '128-42': {'exact': ['37.565'], 'f1': ['46.523']}, '128-43': {'exact': ['38.555'], 'f1': ['48.459']}, '128-44': {'exact': ['43.837'], 'f1': ['52.290']}, '128-45': {'exact': ['32.264'], 'f1': ['39.862']}, '128-46': {'exact': ['43.676'], 'f1': ['52.595']}, '256-42': {'exact': ['47.473'], 'f1': ['55.532']}, '256-43': {'exact': ['52.613'], 'f1': ['62.630']}, '256-44': {'exact': ['49.043'], 'f1': ['58.062']}, '256-45': {'exact': ['43.295'], 'f1': ['52.298']}, '256-46': {'exact': ['51.404'], 'f1': ['60.902']}}
+    mosaic_unite_npairs_4 = {'16-42': {'exact': ['9.917'], 'f1': ['13.520']}, '16-43': {'exact': ['6.948'], 'f1': ['10.071']}, '16-45': {'exact': ['6.158'], 'f1': ['11.808']}, '16-46': {'exact': ['4.435'], 'f1': ['6.100']}, '32-42': {'exact': ['23.679'], 'f1': ['32.046']}, '32-44': {'exact': ['21.262'], 'f1': ['29.573']}, '32-45': {'exact': ['19.206'], 'f1': ['27.152']}, '32-46': {'exact': ['19.435'], 'f1': ['26.089']}, '64-42': {'exact': ['28.467'], 'f1': ['35.044']}, '64-43': {'exact': ['28.609'], 'f1': ['36.021']}, '64-44': {'exact': ['27.820'], 'f1': ['35.246']}, '64-45': {'exact': ['29.742'], 'f1': ['36.741']}, '64-46': {'exact': ['29.990'], 'f1': ['35.766']}, '128-42': {'exact': ['38.222'], 'f1': ['47.068']}, '128-43': {'exact': ['39.555'], 'f1': ['47.748']}, '128-44': {'exact': ['41.658'], 'f1': ['47.879']}, '128-45': {'exact': ['37.851'], 'f1': ['45.811']}, '128-46': {'exact': ['44.256'], 'f1': ['53.318']}, '256-42': {'exact': ['50.719'], 'f1': ['58.678']}, '256-43': {'exact': ['55.087'], 'f1': ['64.735']}, '256-44': {'exact': ['54.763'], 'f1': ['65.191']}, '256-45': {'exact': ['47.064'], 'f1': ['54.730']}, '256-46': {'exact': ['49.691'], 'f1': ['56.455']}}
+    mosaic_unite_npairs_8 = {'16-42': {'exact': ['10.450'], 'f1': ['13.714']}, '16-43': {'exact': ['3.131'], 'f1': ['4.329']}, '16-45': {'exact': ['3.969'], 'f1': ['7.187']}, '16-46': {'exact': ['5.996'], 'f1': ['8.475']}, '32-42': {'exact': ['20.463'], 'f1': ['29.142']}, '32-43': {'exact': ['15.285'], 'f1': ['22.637']}, '32-44': {'exact': ['14.438'], 'f1': ['19.627']}, '32-45': {'exact': ['20.853'], 'f1': ['27.427']}, '32-46': {'exact': ['19.911'], 'f1': ['27.208']}, '64-42': {'exact': ['23.422'], 'f1': ['28.740']}, '64-43': {'exact': ['28.590'], 'f1': ['36.705']}, '64-44': {'exact': ['33.149'], 'f1': ['42.364']}, '64-45': {'exact': ['29.171'], 'f1': ['35.461']}, '64-46': {'exact': ['29.923'], 'f1': ['34.602']}, '128-42': {'exact': ['43.009'], 'f1': ['53.585']}, '128-43': {'exact': ['38.165'], 'f1': ['45.141']}, '128-44': {'exact': ['48.729'], 'f1': ['57.282']}, '128-45': {'exact': ['38.060'], 'f1': ['44.394']}, '128-46': {'exact': ['43.447'], 'f1': ['50.516']}, '256-42': {'exact': ['50.823'], 'f1': ['58.583']}, '256-43': {'exact': ['53.945'], 'f1': ['62.633']}, '256-44': {'exact': ['49.500'], 'f1': ['58.228']}, '256-45': {'exact': ['46.331'], 'f1': ['53.200']}, '256-46': {'exact': ['54.002'], 'f1': ['63.557']}}
+
+    names = ['unite2', 'unite4', 'unite8']
+    dicts = [mosaic_unite, mosaic_unite_npairs_4, mosaic_unite_npairs_8]
+    plot_f1_em_dicts(names, dicts)
+
 if __name__ == '__main__':
     # outputs_path = 'outputs'
     # get_f1_em_dict(outputs_path)
     # get_f1_em_dict_num_aug_exp()
     # plot_june_first_res()
-    get_f1_em_dict_mosaic_unite()
+    # get_f1_em_dict_mosaic_unite()
+    get_f1_em_dict_mosaic_unite_vs_unite_single
