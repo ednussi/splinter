@@ -301,4 +301,4 @@ if __name__ == '__main__':
     # get_f1_em_dict_num_aug_exp()
     # plot_june_first_res()
     # get_f1_em_dict_mosaic_unite()
-    get_f1_em_dict_mosaic_unite_vs_unite_single
+    get_f1_em_dict_mosaic_unite_vs_unite_single()
