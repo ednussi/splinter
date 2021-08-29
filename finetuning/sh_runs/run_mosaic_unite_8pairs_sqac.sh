@@ -9,7 +9,8 @@ do
   for j in 42 43 44 45 46
   do
     echo "Loop $i-$j"
-    EXPNAME='mosaic_unite_npairs_8_singleqac'
+    
+    EXPNAME='mosaic_unite_npairs-8-singleqac'
     TRAINFILE="$BASEPATH/squad/$EXPNAME/squad-train-seed-$j-num-examples-$i.jsonl"
     TESTFILE="$BASEPATH/squad/baseline/dev.jsonl"
     OUTPUTDIR="$BASEPATH/outputs/$EXPNAME/output-$i-$j"
