@@ -225,9 +225,9 @@ def get_f1_em_dict_mosaic_unite():
 def get_f1_em_dict_mosaic_unite_vs_unite_single():
     outputs_path = '/cs/labs/gabis/ednussi/splinter/finetuning/outputs'
 
-    for exp in ['baseline', 'mosaic_unite','mosaic-unite-npairs-2-singleqac',
-    'mosaic_unite_npairs-4','mosaic_unite_npairs-4-singleqac', 
-    'mosaic_unite_npairs-8', 'mosaic_unite_npairs-8-singleqac']:
+    # ['baseline', 'mosaic_unite','mosaic-unite-npairs-2-singleqac','mosaic_unite_npairs-4','mosaic_unite_npairs-4-singleqac', 'mosaic_unite_npairs-8', 'mosaic_unite_npairs-8-singleqac']
+
+    for exp in ['baseline', 'mosaic_unite', 'mosaic_unite_npairs-4', 'mosaic_unite_npairs-8']:
 
         res_dict = {}
         for num_examples in tqdm([16, 32, 64, 128, 256], desc='Examples Num'):
