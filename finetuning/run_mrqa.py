@@ -479,6 +479,7 @@ def evaluate(args, model, tokenizer, prefix=""):
 
 
 def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=False, use_cache=True):
+
     if args.local_rank not in [-1, 0] and not evaluate:
         # Make sure only the first process in distributed training process the dataset, and the others will use the cache
         torch.distributed.barrier()
@@ -532,9 +533,12 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
             if evaluate:
                 examples = processor.get_dev_examples(args.data_dir, filename=args.predict_file)
             else:
-                examples = processor.get_train_examples(args.data_dir, filename=args.train_file)
+                examples = processor.get_train_examples(args.data_dir, filename=args.train_file, aug=args.aug)
 
-        # features, dataset = squad_convert_examples_to_features(examples=examples,tokenizer=tokenizer,max_seq_length=args.max_seq_length,doc_stride=args.doc_stride,max_query_length=args.max_query_length,is_training=not evaluate,return_dataset="pt",threads=args.threads)
+        # TODO deep dive into how #features is determined by #examples??
+        if False:
+            features2, dataset2 = squad_convert_examples_to_features(examples=[examples[0]], tokenizer=tokenizer,max_seq_length=args.max_seq_length,doc_stride=args.doc_stride,max_query_length=args.max_query_length,is_training=not evaluate, return_dataset="pt",threads=args.threads)
+
         features, dataset = squad_convert_examples_to_features(
             examples=examples,
             tokenizer=tokenizer,
@@ -561,9 +565,8 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
 
 
 #LOCALLY
-# python run_mrqa.py  --model_type=roberta-base  --model_name_or_path=roberta-base  --qass_head=False  --tokenizer_name=roberta-base  --output_dir="output" --train_file="squad/squad-train-seed-42-num-examples-16.jsonl"  --predict_file="squad/dev.jsonl"  --do_train  --do_eval  --cache_dir=.cache  --max_seq_length=384  --doc_stride=128  --threads=4  --save_steps=50000  --per_gpu_train_batch_size=12  --per_gpu_eval_batch_size=16  --learning_rate=3e-5  --max_answer_length=10  --warmup_ratio=0.1  --min_steps=200  --num_train_epochs=10  --seed=42  --use_cache=False --evaluate_every_epoch=False --overwrite_output_dir
+# python run_mrqa.py  --model_type=roberta-base  --model_name_or_path=roberta-base  --qass_head=False  --tokenizer_name=roberta-base  --output_dir=output_test  --train_file="squad/baseline/squad-train-seed-42-num-examples-16.jsonl"  --predict_file="squad/dev.jsonl"  --do_train  --do_eval  --cache_dir=.cache  --max_seq_length=384  --doc_stride=128  --threads=4  --save_steps=50000  --per_gpu_train_batch_size=12  --per_gpu_eval_batch_size=16  --learning_rate=3e-5  --max_answer_length=10  --warmup_ratio=0.1  --min_steps=200  --num_train_epochs=1  --seed=42  --use_cache=False --evaluate_every_epoch=False --overwrite_output_dir --aug mosaic
 #REMOTE
-
 
 
 def main():
@@ -706,6 +709,9 @@ def main():
     if args.do_train:
         train_dataset = load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=False,
                                                 use_cache=args.use_cache)
+        print(f"TRAIN DATASET SIZE {len(train_dataset)}")
+        import pdb; pdb.set_trace()
+
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 

@@ -63,19 +63,73 @@ class MRQAExample:
 
         # Start and end positions only has a value during evaluation.
         if start_position_character is not None:
-            self.start_position = char_to_word_offset[start_position_character]
-            self.end_position = char_to_word_offset[
-                min(start_position_character + len(answer_text) - 1, len(char_to_word_offset) - 1)
-            ]
+            try:
+                self.start_position = char_to_word_offset[start_position_character]
+                self.end_position = char_to_word_offset[
+                    min(start_position_character + len(answer_text) - 1, len(char_to_word_offset) - 1)
+                ]
+            except:
+                print(start_position_character)
+                print(char_to_word_offset)
+                import pdb; pdb.set_trace()
 
+
+from mosaic_augment_utils import mosaic_npairs_single_qac_aug
 
 class MRQAProcessor:
     train_file = "train-v1.1.json"
     dev_file = "dev-v1.1.json"
 
-    def create_examples(self, input_data, set_type):
+    def df_to_MRQA_list(seld, df):
+
+        examples = []
+
+        for _, row in tqdm(df.iterrows()):
+            context = row["context"]
+            context_tokens = row["context_tokens"]
+            for qa in row["qas"]:
+                qas_id = qa["id" if "id" in qa else "qid"]
+                question_text = qa["question"]
+                question_tokens = qa["question_tokens"]
+
+                answer = qa["detected_answers"][0]
+                answer_text = " ".join(
+                    [c_t[0] for c_t in context_tokens[answer['token_spans'][0][0]: answer['token_spans'][0][1] + 1]])
+                start_position_character = answer["char_spans"][0][0]
+                answers = []
+
+                examples.append(MRQAExample(qas_id=qas_id, question_text=question_text, question_tokens=question_tokens,
+                                            context_text=context, context_tokens=context_tokens,
+                                            answer_text=answer_text,
+                                            start_position_character=start_position_character, answers=answers))
+        return examples
+
+
+    def augment_input_data(self, input_data, aug_type):
+        if aug_type.startswith('mosaic'):
+            _, pairs, final_single_qac_triplets= aug_type.split('-')
+            aug_df = mosaic_npairs_single_qac_aug(input_data, pairs=2, final_single_qac_triplets= final_single_qac_triplets == 'True')
+        else:
+            import pdb; pdb.set_trace()
+
+        examples = self.df_to_MRQA_list(aug_df)
+
+        return examples
+
+
+    def create_examples(self, input_data, set_type, aug):
+        """
+        :param input_data: list of the jsonl MRQA formatted examples
+        :param set_type: string "train" or else
+        :param aug: augmentation type to use
+        :return: list of MRQA Examples
+        """
         is_training = set_type == "train"
         examples = []
+
+        if aug and is_training:
+            return self.augment_input_data(input_data, aug)
+
         for entry in tqdm(input_data):
             context = entry["context"]
             context_tokens = entry["context_tokens"]
@@ -101,7 +155,7 @@ class MRQAProcessor:
                                             start_position_character=start_position_character, answers=answers))
         return examples
 
-    def get_train_examples(self, data_dir, filename=None):
+    def get_train_examples(self, data_dir, filename=None, aug=''):
         """
         Returns the training examples from the data directory.
 
@@ -122,7 +176,7 @@ class MRQAProcessor:
         ) as reader:
             print(reader.readline())
             input_data = [json.loads(line) for line in reader]
-        return self.create_examples(input_data, "train")
+        return self.create_examples(input_data, "train", aug)
 
     def get_dev_examples(self, data_dir, filename=None):
         """

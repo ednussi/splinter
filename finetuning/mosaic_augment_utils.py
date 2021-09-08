@@ -8,20 +8,23 @@ import time
 from copy import deepcopy
 
 
+
+def input_data_to_df(input_data):
+    df = pd.DataFrame()
+
+    for line in input_data:
+        df = df.append(line, ignore_index=True)
+
+    assert len(input_data) == len(df)
+
+    return df
+
 def train_file_to_df(train_file_path):
     # open file
     with open(train_file_path, "r", encoding="utf-8") as reader:
         input_data = [json.loads(line) for line in reader]
 
-    df = pd.DataFrame()  # columns=['id','qid','answers','question','question_tokens','detected_answers']
-
-    for line in tqdm(input_data[1:], desc='Enhancing with augs'):
-        df = df.append(line, ignore_index=True)
-
-    df['qas']
-
-    return df
-
+    return input_data_to_df(input_data[1:])
 
 def split_qas_to_single_qac_triplets(df):
     split_df = pd.DataFrame()
@@ -127,11 +130,11 @@ def qas_clique_unite(df):
                                           'context':combined_context,
                                           'context_tokens':context_tokens,
                                           'qas':combined_qas},ignore_index=True)
-            combined_qas, context_tokens, combined_context, combined_id = get_combined_de(row2_copy, row1_copy)
-            united_df = united_df.append({'id':combined_id,
-                                          'context':combined_context,
-                                          'context_tokens':context_tokens,
-                                          'qas':combined_qas},ignore_index=True)
+            combined_qas2, context_tokens2, combined_context2, combined_id2 = get_combined_de(row2_copy, row1_copy)
+            united_df = united_df.append({'id':combined_id2,
+                                          'context':combined_context2,
+                                          'context_tokens':context_tokens2,
+                                          'qas':combined_qas2},ignore_index=True)
     return united_df
 
 
@@ -204,6 +207,28 @@ def create_moasic_unite_npairs_exp_data(squad_path, pairs=8, final_single_qac_tr
                 uni_df = split_qas_to_single_qac_triplets(uni_df)
             write_df(uni_df, f'{output_dir}/squad-train-seed-{seed}-num-examples-{num_examples}.jsonl')
 
+def print_df_example(df, index=0):
+    row = df.iloc[index]
+    print("="*15 + row['id'] + "="*15)
+    print('\n'+"="*15 + 'QAS' + "="*15)
+    for qas in row['qas']:
+        ans = qas['answers']
+        q = qas['question']
+        print(f"Question: {q}")
+        print(f"Answer: {ans}")
+    print('\n'+"="*15 + 'Context' + "="*15)
+    print(row['context'])
+    # print('\n'+"="*15 + 'Context Tokens' + "="*15)
+    # print(row['context_tokens'])
+
+def mosaic_npairs_single_qac_aug(input_data, pairs=2, final_single_qac_triplets=True):
+    df = input_data_to_df(input_data)
+    split_df = split_qas_to_single_qac_triplets(df)
+    uni_df = qas_npairs_unite(split_df, pairs)
+    if final_single_qac_triplets:
+        uni_single_qac_df = split_qas_to_single_qac_triplets(uni_df)
+        return uni_single_qac_df
+    return uni_df
 
 if __name__ == '__main__':
     # train_file_name = f'squad/moasic_unite/squad-train-seed-42-num-examples-16.jsonl'
