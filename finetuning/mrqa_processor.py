@@ -107,10 +107,14 @@ class MRQAProcessor:
 
     def augment_input_data(self, input_data, aug_type):
         if aug_type.startswith('mosaic'):
-            _, pairs, final_single_qac_triplets= aug_type.split('-')
+            _, pairs, final_single_qac_triplets = aug_type.split('-')
             aug_df = mosaic_npairs_single_qac_aug(input_data, pairs=2, final_single_qac_triplets= final_single_qac_triplets == 'True')
         else:
             import pdb; pdb.set_trace()
+
+        # Verify order is different each time it's called
+        print(aug_df['context'][:4])
+        import pdb; pdb.set_trace()
 
         examples = self.df_to_MRQA_list(aug_df)
 

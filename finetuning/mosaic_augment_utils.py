@@ -116,8 +116,12 @@ def qas_pairs_unite(df):
                                       'qas':combined_qas},ignore_index=True)
     return united_df
 
-def qas_clique_unite(df):
+def qas_clique_unite(df, ):
     united_df = pd.DataFrame()
+
+    # shuffle df before pairing
+    df.sample(frac=1)
+
     for i in range(0, len(df)):
         row1 = df.iloc[i]
         for j in range(i+1, len(df)):
@@ -145,11 +149,11 @@ def split_dataframe(df, chunk_size = 8):
         chunks.append(df[i*chunk_size:(i+1)*chunk_size])
     return chunks
 
-def qas_npairs_unite(df, pairs):
+def qas_npairs_unite(df, pairs, seed=None):
     # Divide and runs in clique - aggrigate in end
     npairs_df = pd.DataFrame()
     for df_chunk in split_dataframe(df, chunk_size=pairs):
-        united_df = qas_clique_unite(df_chunk)
+        united_df = qas_clique_unite(df_chunk, seed)
         npairs_df = pd.concat([npairs_df, united_df], ignore_index=True)
 
     return npairs_df
@@ -221,10 +225,10 @@ def print_df_example(df, index=0):
     # print('\n'+"="*15 + 'Context Tokens' + "="*15)
     # print(row['context_tokens'])
 
-def mosaic_npairs_single_qac_aug(input_data, pairs=2, final_single_qac_triplets=True):
+def mosaic_npairs_single_qac_aug(input_data, pairs=2, final_single_qac_triplets=True, seed=None):
     df = input_data_to_df(input_data)
     split_df = split_qas_to_single_qac_triplets(df)
-    uni_df = qas_npairs_unite(split_df, pairs)
+    uni_df = qas_npairs_unite(split_df, pairs, seed)
     if final_single_qac_triplets:
         uni_single_qac_df = split_qas_to_single_qac_triplets(uni_df)
         return uni_single_qac_df

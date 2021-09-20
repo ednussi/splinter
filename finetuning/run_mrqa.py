@@ -58,6 +58,12 @@ logger = logging.getLogger(__name__)
 def to_list(tensor):
     return tensor.detach().cpu().tolist()
 
+def get_train_dataloader(args, tokenizer):
+    logger.info("Getting Train Dataloader..")
+    train_dataset = load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=False, use_cache=args.use_cache)
+    train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
+    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
+    return train_dataloader
 
 def train(args, train_dataset, model, tokenizer):
     """ Train the model """
@@ -65,8 +71,7 @@ def train(args, train_dataset, model, tokenizer):
         tb_writer = SummaryWriter()
 
     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
-    train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
-    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
+    train_dataloader = get_train_dataloader(args, tokenizer)
 
     if args.max_steps > 0:
         t_total = args.max_steps
@@ -175,7 +180,12 @@ def train(args, train_dataset, model, tokenizer):
     f = open(f"{args.output_dir}/log_lr_loss.csv", "w")
     f.write(f',{",".join(csv_columns)}\n')
 
-    for _ in train_iterator:
+    import pdb; pdb.set_trace()
+    for i, _ in enumerate(train_iterator):
+        # TODO recreate train_dataloader for new aug per epoch
+        if i > 0:
+            train_dataloader = get_train_dataloader(args, train_dataset)
+
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
             start_step_time = time.time()
@@ -510,9 +520,6 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
             features_and_dataset["examples"],
         )
     else:
-        logger.info("Running Mosaic Augmentation")
-
-
         logger.info("Creating features from dataset file at %s", input_dir)
         if not args.data_dir and ((evaluate and not args.predict_file) or (not evaluate and not args.train_file)):
             try:
@@ -535,9 +542,8 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
             else:
                 examples = processor.get_train_examples(args.data_dir, filename=args.train_file, aug=args.aug)
 
-        # TODO deep dive into how #features is determined by #examples??
-        if False:
-            features2, dataset2 = squad_convert_examples_to_features(examples=[examples[0]], tokenizer=tokenizer,max_seq_length=args.max_seq_length,doc_stride=args.doc_stride,max_query_length=args.max_query_length,is_training=not evaluate, return_dataset="pt",threads=args.threads)
+        # TODO: remove debugging
+        # features2, dataset2 = squad_convert_examples_to_features(examples=[examples[0]], tokenizer=tokenizer,max_seq_length=args.max_seq_length,doc_stride=args.doc_stride,max_query_length=args.max_query_length,is_training=not evaluate, return_dataset="pt",threads=args.threads)
 
         features, dataset = squad_convert_examples_to_features(
             examples=examples,
@@ -565,7 +571,7 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
 
 
 #LOCALLY
-# python run_mrqa.py  --model_type=roberta-base  --model_name_or_path=roberta-base  --qass_head=False  --tokenizer_name=roberta-base  --output_dir=output_test  --train_file="squad/baseline/squad-train-seed-42-num-examples-16.jsonl"  --predict_file="squad/dev.jsonl"  --do_train  --do_eval  --cache_dir=.cache  --max_seq_length=384  --doc_stride=128  --threads=4  --save_steps=50000  --per_gpu_train_batch_size=12  --per_gpu_eval_batch_size=16  --learning_rate=3e-5  --max_answer_length=10  --warmup_ratio=0.1  --min_steps=200  --num_train_epochs=1  --seed=42  --use_cache=False --evaluate_every_epoch=False --overwrite_output_dir --aug mosaic
+# python run_mrqa.py  --model_type=roberta-base  --model_name_or_path=roberta-base  --qass_head=False  --tokenizer_name=roberta-base  --output_dir=output_test  --train_file="squad/baseline/squad-train-seed-42-num-examples-16.jsonl"  --predict_file="squad/dev.jsonl"  --do_train  --do_eval  --cache_dir=.cache  --max_seq_length=384  --doc_stride=128  --threads=4  --save_steps=50000  --per_gpu_train_batch_size=12  --per_gpu_eval_batch_size=16  --learning_rate=3e-5  --max_answer_length=10  --warmup_ratio=0.1  --min_steps=200  --num_train_epochs=1  --seed=42  --use_cache=False --evaluate_every_epoch=False --overwrite_output_dir --aug mosaic-2-False
 #REMOTE
 
 
@@ -710,7 +716,6 @@ def main():
         train_dataset = load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=False,
                                                 use_cache=args.use_cache)
         print(f"TRAIN DATASET SIZE {len(train_dataset)}")
-        import pdb; pdb.set_trace()
 
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
