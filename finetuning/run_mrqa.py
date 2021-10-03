@@ -180,7 +180,8 @@ def train(args, train_dataset, model, tokenizer):
     f = open(f"{args.output_dir}/log_lr_loss.csv", "w")
     f.write(f',{",".join(csv_columns)}\n')
 
-    import pdb; pdb.set_trace()
+    # TODO: remove debugging
+    # import pdb; pdb.set_trace()
     for i, _ in enumerate(train_iterator):
         # TODO recreate train_dataloader for new aug per epoch
         if i > 0:

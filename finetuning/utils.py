@@ -226,7 +226,7 @@ def init_parser():
                                                                          "naturalqa", "squad", "bioasq", "textbookqa"])
     parser.add_argument("--dont_output_nbest", action="store_true")
     parser.add_argument("--nbest_calculation", action="store_true")
-    parser.add_argument('--aug', type=str, required=False, default='mosaic', help='aug')
+    parser.add_argument('--aug', type=str, required=False, default='', help='Formatted string <aug_name>-<number_of_augs>-<True/False>, last True/False if to use random aug every epoch e.g. mosaic-2-False, no string would no run any augs')
     parser.add_argument('--augs_names', nargs='+', required=False, default=[],
                         help='list of augs name from: delete-random, insert-word-embed, sub-word-embed, insert-bert-embed, sub-bert-embed')
     parser.add_argument('--augs_count', nargs='+', required=False, default=[],
