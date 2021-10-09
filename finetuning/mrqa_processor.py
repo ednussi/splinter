@@ -202,4 +202,6 @@ class MRQAProcessor:
         ) as reader:
             print(reader.readline())
             input_data = [json.loads(line) for line in reader]
-        return self.create_examples(input_data, "dev")
+        # No aug neede for test set
+        aug = ''
+        return self.create_examples(input_data, "dev", aug)
