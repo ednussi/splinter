@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+import numpy as np
 from tqdm import tqdm
 import os
 import time
@@ -116,11 +117,13 @@ def qas_pairs_unite(df):
                                       'qas':combined_qas},ignore_index=True)
     return united_df
 
-def qas_clique_unite(df):
+def qas_clique_unite(df, seed=None):
     united_df = pd.DataFrame()
 
     # shuffle df before pairing
-    df.sample(frac=1)
+    if seed: # optional seed to generate different matching
+        np.random.seed(seed)
+    df.sample(frac=1) # Actively shuffles
 
     for i in range(0, len(df)):
         row1 = df.iloc[i]

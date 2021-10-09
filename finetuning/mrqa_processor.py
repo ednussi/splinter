@@ -113,8 +113,8 @@ class MRQAProcessor:
             import pdb; pdb.set_trace()
 
         # Verify order is different each time it's called
+        #TODO: Remove
         print(aug_df['context'][:4])
-        import pdb; pdb.set_trace()
 
         examples = self.df_to_MRQA_list(aug_df)
 
@@ -202,6 +202,7 @@ class MRQAProcessor:
         ) as reader:
             print(reader.readline())
             input_data = [json.loads(line) for line in reader]
+
         # No aug neede for test set
         aug = ''
         return self.create_examples(input_data, "dev", aug)
