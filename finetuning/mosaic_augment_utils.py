@@ -116,7 +116,7 @@ def qas_pairs_unite(df):
                                       'qas':combined_qas},ignore_index=True)
     return united_df
 
-def qas_clique_unite(df, ):
+def qas_clique_unite(df):
     united_df = pd.DataFrame()
 
     # shuffle df before pairing
