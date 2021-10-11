@@ -7,7 +7,6 @@ def init_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--exps, -e",
-        type=str,
         nargs='+',
         required=True,
         help="Expirement path to results",
