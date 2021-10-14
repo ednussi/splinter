@@ -1,63 +1,5 @@
-# from transformers import AutoTokenizer, AutoModelForQuestionAnswering
-# import torch
-from tqdm import tqdm
-# from transformers import AdamW, create_optimizer, get_linear_schedule_with_warmup
-# from torch.utils.data import DataLoader
-# import math
-# import pandas as pd
-# import json
-# import sys
-# import string
-# import tempfile
-# import subprocess
-import re
 import matplotlib.pyplot as plt
-# from data.squad.eval1 import evaluate
-# import nlpaug.augmenter.word as naw
-import os
-# import requests
-# import gzip
-# import shutil
 import numpy as np
-
-
-# # ============ Save ============
-# # save answers df
-# answers_df_name = f'{base_path}/results/{exp_name}/data/answers_{exp_params}.csv'
-# answers_df.to_csv(answers_df_name)
-# EM, F1 = [x.split(':')[1] for x in res_summary.split(',')]
-# with open(results_path, "a") as myfile:
-#     save_string = f'{csv_entery_num},{EM},{F1},{seed},{shuffle_seed},{n},{base_model}\n'
-#     myfile.write(save_string)
-# csv_entery_num += 1
-#
-# # ============ Plot Results ============
-# if args.plot_res:
-#     plot_random_sample_res([results_path], exp_name, base_path)
-
-
-def get_f1_em_dict(outputs_path):
-
-    for aug in ['insert-word', 'sub-word', 'insert-bert','sub-bert', 'delete-random']:
-
-        res_dict = {}
-        for num_examples in tqdm([16, 32, 64, 128, 256], desc='Examples Num'):
-
-            for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
-                res_folder_path = f'output-{aug}-{num_examples}-{seed}'
-                res_file = f'{outputs_path}/{res_folder_path}/eval_results.txt'
-                if os.path.exists(res_file):
-                    with open(res_file, "r") as f:
-                        lines = f.readlines()
-
-                    f1 = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_f1 = ')][0])
-                    em = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_exact = ')][0])
-                    res_dict[f'{num_examples}-{seed}'] = {'exact':em, 'f1':f1}
-
-        # plot this aug
-        print(aug)
-        print(res_dict)
-        #plot_f1_em_dict(res_dict)
 
 def init_plot():
     plt.figure(figsize=(20,30))
@@ -120,7 +62,7 @@ def plot_f1_em_dict(res_dict):
     plt.show()
 
 
-def plot_f1_em_dicts(names, dicts):
+def plot_f1_em_dicts(names, dicts, show_min_max=True):
 
     fig, ax_f1, ax_em = init_plot()
 
@@ -158,9 +100,11 @@ def plot_f1_em_dicts(names, dicts):
 
 
         ax_f1.plot(x, y_f1, label=line_name)
-        ax_f1.fill_between(x, yerr_f1_min, yerr_f1_max, alpha=0.5)
         ax_em.plot(x, y_em, label=line_name)
-        ax_em.fill_between(x, yerr_em_min, yerr_em_max, alpha=0.5)
+
+        if show_min_max:
+            ax_f1.fill_between(x, yerr_f1_min, yerr_f1_max, alpha=0.5)
+            ax_em.fill_between(x, yerr_em_min, yerr_em_max, alpha=0.5)
 
         xrange = [2 ** x for x in range(4, 9)]
         xrange_text = [str(x) for x in xrange]
@@ -175,82 +119,6 @@ def plot_f1_em_dicts(names, dicts):
     ax_em.set_xticklabels(xrange_text)
     fig.tight_layout()
     plt.show()
-
-
-def get_f1_em_dict_num_aug_exp():
-    outputs_path = '/cs/labs/gabis/ednussi/splinter/finetuning/outputs/num_augs_exp'
-
-    for aug in ['delete-random','sub-word', 'insert-bert']:
-
-        res_dict = {}
-        for num_augs in [1, 2, 3]:
-            for num_examples in tqdm([16, 32, 64, 128, 256], desc='Examples Num'):
-
-                for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
-
-                    res_folder_path = f'output-{aug}-{num_examples}-{seed}-{seed}-{num_augs}'
-                    res_file = f'{outputs_path}/{res_folder_path}/eval_results.txt'
-                    if os.path.exists(res_file):
-                        with open(res_file, "r") as f:
-                            lines = f.readlines()
-
-                        f1 = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_f1 = ')][0])
-                        em = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_exact = ')][0])
-                        res_dict[f'{num_examples}-{seed}'] = {'exact':em, 'f1':f1}
-
-            # plot this aug
-            print(aug, num_augs)
-            print(res_dict)
-
-def get_f1_em_dict_mosaic_unite():
-    outputs_path = '/cs/labs/gabis/ednussi/splinter/finetuning/outputs'
-
-    for exp in ['mosaic_unite','mosaic_unite_npairs-4', 'mosaic_unite_npairs-8']:
-
-        res_dict = {}
-        for num_examples in tqdm([16, 32, 64, 128, 256], desc='Examples Num'):
-
-            for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
-
-                res_folder_path = f'/{exp}/output-{num_examples}-{seed}'
-                res_file = f'{outputs_path}/{res_folder_path}/eval_results.txt'
-                if os.path.exists(res_file):
-                    with open(res_file, "r") as f:
-                        lines = f.readlines()
-
-                    f1 = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_f1 = ')][0])
-                    em = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_exact = ')][0])
-                    res_dict[f'{num_examples}-{seed}'] = {'exact':em, 'f1':f1}
-
-        # plot this aug
-        print(f'============ {exp} ============')
-        print(res_dict)
-
-def get_f1_em_dict_mosaic_unite_vs_unite_single():
-    outputs_path = '/cs/labs/gabis/ednussi/splinter/finetuning/outputs'
-
-    # ['baseline', 'mosaic_unite','mosaic-unite-npairs-2-singleqac','mosaic_unite_npairs-4','mosaic_unite_npairs-4-singleqac', 'mosaic_unite_npairs-8', 'mosaic_unite_npairs-8-singleqac']
-
-    for exp in ['baseline', 'mosaic_unite', 'mosaic_unite_npairs-4', 'mosaic_unite_npairs-8']:
-
-        res_dict = {}
-        for num_examples in tqdm([16, 32, 64, 128, 256], desc='Examples Num'):
-
-            for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
-
-                res_folder_path = f'/{exp}/output-{num_examples}-{seed}'
-                res_file = f'{outputs_path}/{res_folder_path}/eval_results.txt'
-                if os.path.exists(res_file):
-                    with open(res_file, "r") as f:
-                        lines = f.readlines()
-
-                    f1 = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_f1 = ')][0])
-                    em = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_exact = ')][0])
-                    res_dict[f'{num_examples}-{seed}'] = {'exact':em, 'f1':f1}
-
-        # plot this aug
-        print(f'============ {exp} ============')
-        print(res_dict)
 
 def plot_june_ninth_res():
     insert_bert = {'16-42': {'exact': ['4.673'], 'f1': ['7.727']}, '16-43': {'exact': ['6.262'], 'f1': ['10.371']},
@@ -502,13 +370,14 @@ def plot_mosaic_unite():
     dicts = [baseline, mosaic_unite, mosaic_unite_npairs_4, mosaic_unite_npairs_8]
     plot_f1_em_dicts(names, dicts)
 
+
+# ======================== RESULTS ========================
+baseline_old = {'64-43': {'exact': ['23.289'], 'f1': ['31.024']}, '16-46': {'exact': ['4.064'], 'f1': ['5.716']}, '16-43': {'exact': ['5.511'], 'f1': ['9.563']}, '64-45': {'exact': ['22.004'], 'f1': ['28.248']}, '32-42': {'exact': ['7.052'], 'f1': ['11.504']}, '256-46': {'exact': ['47.464'], 'f1': ['57.048']}, '128-43': {'exact': ['30.494'], 'f1': ['39.791']}, '64-46': {'exact': ['25.136'], 'f1': ['33.040']}, '128-44': {'exact': ['35.719'], 'f1': ['43.534']}, '32-44': {'exact': ['19.378'], 'f1': ['27.676']}, '32-43': {'exact': ['11.402'], 'f1': ['17.522']}, '64-42': {'exact': ['21.662'], 'f1': ['26.912']}, '16-44': {'exact': ['9.089'], 'f1': ['16.428']}, '16-42': {'exact': ['4.683'], 'f1': ['6.779']}, '256-43': {'exact': ['52.213'], 'f1': ['61.855']}, '256-45': {'exact': ['40.973'], 'f1': ['50.231']}, '128-45': {'exact': ['29.219'], 'f1': ['35.873']}, '256-42': {'exact': ['41.515'], 'f1': ['50.887']}, '16-45': {'exact': ['1.713'], 'f1': ['4.461']}, '128-46': {'exact': ['39.688'], 'f1': ['49.168']}, '64-44': {'exact': ['25.707'], 'f1': ['33.754']}, '256-44': {'exact': ['48.568'], 'f1': ['58.361']}, '128-42': {'exact': ['27.163'], 'f1': ['34.966']}}
+baseline = {'16-42': {'exact': ['4.683'], 'f1': ['6.779']}, '16-43': {'exact': ['5.511'], 'f1': ['9.563']}, '16-44': {'exact': ['9.089'], 'f1': ['16.428']}, '16-45': {'exact': ['1.713'], 'f1': ['4.461']}, '16-46': {'exact': ['4.064'], 'f1': ['5.716']}, '32-42': {'exact': ['7.052'], 'f1': ['11.504']}, '32-43': {'exact': ['11.402'], 'f1': ['17.522']}, '32-44': {'exact': ['19.378'], 'f1': ['27.676']}, '32-45': {'exact': ['10.469'], 'f1': ['15.059']}, '32-46': {'exact': ['13.781'], 'f1': ['21.021']}, '64-42': {'exact': ['21.662'], 'f1': ['26.912']}, '64-43': {'exact': ['23.289'], 'f1': ['31.024']}, '64-44': {'exact': ['25.707'], 'f1': ['33.754']}, '64-45': {'exact': ['22.004'], 'f1': ['28.248']}, '64-46': {'exact': ['25.136'], 'f1': ['33.040']}, '128-42': {'exact': ['27.163'], 'f1': ['34.966']}, '128-43': {'exact': ['30.494'], 'f1': ['39.791']}, '128-44': {'exact': ['35.719'], 'f1': ['43.534']}, '128-45': {'exact': ['29.219'], 'f1': ['35.873']}, '128-46': {'exact': ['39.688'], 'f1': ['49.168']}, '256-42': {'exact': ['41.515'], 'f1': ['50.887']}, '256-43': {'exact': ['52.213'], 'f1': ['61.855']}, '256-44': {'exact': ['48.568'], 'f1': ['58.361']}, '256-45': {'exact': ['40.973'], 'f1': ['50.231']}, '256-46': {'exact': ['47.464'], 'f1': ['57.048']}}
+mosaic_2_False = {'16-42': {'exact': ['4.606'], 'f1': ['6.448']}, '16-43': {'exact': ['10.593'], 'f1': ['15.511']}, '16-44': {'exact': ['5.844'], 'f1': ['10.028']}, '16-45': {'exact': ['2.789'], 'f1': ['5.664']}, '16-46': {'exact': ['4.035'], 'f1': ['5.851']}, '32-42': {'exact': ['16.341'], 'f1': ['22.559']}, '32-43': {'exact': ['12.972'], 'f1': ['21.194']}, '32-44': {'exact': ['9.375'], 'f1': ['12.329']}, '32-45': {'exact': ['17.807'], 'f1': ['25.613']}, '32-46': {'exact': ['16.199'], 'f1': ['22.795']}, '64-42': {'exact': ['27.915'], 'f1': ['36.496']}, '64-43': {'exact': ['21.024'], 'f1': ['29.088']}, '64-44': {'exact': ['25.726'], 'f1': ['34.979']}, '64-45': {'exact': ['25.526'], 'f1': ['34.967']}, '64-46': {'exact': ['29.457'], 'f1': ['38.085']}, '128-42': {'exact': ['39.412'], 'f1': ['49.808']}, '128-43': {'exact': ['34.729'], 'f1': ['45.188']}, '128-44': {'exact': ['43.323'], 'f1': ['52.249']}, '128-45': {'exact': ['32.093'], 'f1': ['40.903']}, '128-46': {'exact': ['44.094'], 'f1': ['53.837']}, '256-42': {'exact': ['52.594'], 'f1': ['61.348']}, '256-43': {'exact': ['51.756'], 'f1': ['61.193']}, '256-44': {'exact': ['51.413'], 'f1': ['61.543']}, '256-45': {'exact': ['51.432'], 'f1': ['61.101']}, '256-46': {'exact': ['51.823'], 'f1': ['61.318']}}
+mosaic_2_False_old = {'16-44': {'exact': ['5.844'], 'f1': ['10.028']}, '64-42': {'exact': ['27.915'], 'f1': ['36.496']},'16-45': {'exact': ['2.789'], 'f1': ['5.664']}, '128-44': {'exact': ['43.323'], 'f1': ['52.249']},'16-42': {'exact': ['4.606'], 'f1': ['6.448']}, '256-45': {'exact': ['51.432'], 'f1': ['61.101']},'128-45': {'exact': ['32.093'], 'f1': ['40.903']}, '64-43': {'exact': ['21.024'], 'f1': ['29.088']},'64-46': {'exact': ['29.457'], 'f1': ['38.085']}, '64-45': {'exact': ['25.526'], 'f1': ['34.967']},'16-43': {'exact': ['10.593'], 'f1': ['15.511']}, '16-46': {'exact': ['4.035'], 'f1': ['5.851']},'128-43': {'exact': ['34.729'], 'f1': ['45.188']}, '32-45': {'exact': ['17.807'], 'f1': ['25.613']},'32-44': {'exact': ['9.375'], 'f1': ['12.329']}, '256-44': {'exact': ['51.413'], 'f1': ['61.543']},'32-42': {'exact': ['16.341'], 'f1': ['22.559']}, '256-42': {'exact': ['52.594'], 'f1': ['61.348']},'256-46': {'exact': ['51.823'], 'f1': ['61.318']}, '32-43': {'exact': ['12.972'], 'f1': ['21.194']},'256-43': {'exact': ['51.756'], 'f1': ['61.193']}, '128-42': {'exact': ['39.412'], 'f1': ['49.808']},'128-46': {'exact': ['44.094'], 'f1': ['53.837']}, '64-44': {'exact': ['25.726'], 'f1': ['34.979']},'32-46': {'exact': ['16.199'], 'f1': ['22.795']}}
+
 if __name__ == '__main__':
-    # outputs_path = 'outputs'
-    # get_f1_em_dict(outputs_path)
-    # get_f1_em_dict_num_aug_exp()
-    # plot_june_first_res()
-    # get_f1_em_dict_mosaic_unite()
-    # plot_window_exps()
-    # get_f1_em_dict_mosaic_unite_vs_unite_single()
-    # plot_mosaic_unite()
-    deep_mosaic_vs_insert()
+    names = ['baseline', 'baseline_old','mosaic_2_False', 'mosaic_2_False_old']
+    dicts = [baseline, baseline_old, mosaic_2_False, mosaic_2_False_old]
+    plot_f1_em_dicts(names, dicts, show_min_max=False)
