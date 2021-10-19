@@ -83,7 +83,6 @@ def train(args, train_dataset, model, tokenizer):
         t_total = args.min_steps
         args.num_train_epochs = args.min_steps // (len(train_dataloader) // args.gradient_accumulation_steps) + 1
 
-
     # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ["bias", "LayerNorm.weight"]
     optimizer_grouped_parameters = [
@@ -180,12 +179,12 @@ def train(args, train_dataset, model, tokenizer):
     f = open(f"{args.output_dir}/log_lr_loss.csv", "w")
     f.write(f',{",".join(csv_columns)}\n')
 
-    # TODO: remove debugging
-    # import pdb; pdb.set_trace()
     for i, _ in enumerate(train_iterator):
-        # TODO recreate train_dataloader for new aug per epoch
-        if i > 0:
-            train_dataloader = get_train_dataloader(args, tokenizer)
+
+        # If dynamic augs - Recrate new augs every epoch
+        if args.dynamic_augs:
+            if i > 0:
+                train_dataloader = get_train_dataloader(args, tokenizer)
 
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
