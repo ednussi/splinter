@@ -1,7 +1,9 @@
 """ Adapted from HuggingFace code for SQuAD """
-import json
+
 from tqdm import tqdm
+from mosaic_augment_utils import mosaic_npairs_single_qac_aug, context_shuffle_aug
 import os
+import json
 
 
 class MRQAExample:
@@ -74,7 +76,6 @@ class MRQAExample:
                 import pdb; pdb.set_trace()
 
 
-from mosaic_augment_utils import mosaic_npairs_single_qac_aug
 
 class MRQAProcessor:
     train_file = "train-v1.1.json"
@@ -105,10 +106,14 @@ class MRQAProcessor:
         return examples
 
 
-    def augment_input_data(self, input_data, aug_type):
+    def augment_input_data(self, input_data, aug_type, single_qac=False):
         if aug_type.startswith('mosaic'):
             _, pairs, final_single_qac_triplets = aug_type.split('-')
-            aug_df = mosaic_npairs_single_qac_aug(input_data, pairs=2, final_single_qac_triplets= final_single_qac_triplets == 'True')
+            aug_df = mosaic_npairs_single_qac_aug(input_data, pairs=pairs, final_single_qac_triplets=single_qac)
+
+        elif aug_type.startswith('context-shuffle'):
+            aug_df = context_shuffle_aug(input_data)
+
         else:
             import pdb; pdb.set_trace()
 
@@ -121,7 +126,7 @@ class MRQAProcessor:
         return examples
 
 
-    def create_examples(self, input_data, set_type, aug):
+    def create_examples(self, input_data, set_type, aug, single_qac=False):
         """
         :param input_data: list of the jsonl MRQA formatted examples
         :param set_type: string "train" or else
@@ -132,7 +137,7 @@ class MRQAProcessor:
         examples = []
 
         if aug and is_training:
-            return self.augment_input_data(input_data, aug)
+            return self.augment_input_data(input_data, aug, single_qac)
 
         for entry in tqdm(input_data):
             context = entry["context"]
@@ -159,7 +164,7 @@ class MRQAProcessor:
                                             start_position_character=start_position_character, answers=answers))
         return examples
 
-    def get_train_examples(self, data_dir, filename=None, aug=''):
+    def get_train_examples(self, data_dir, filename=None, aug='', single_qac=False):
         """
         Returns the training examples from the data directory.
 
@@ -180,7 +185,7 @@ class MRQAProcessor:
         ) as reader:
             print(reader.readline())
             input_data = [json.loads(line) for line in reader]
-        return self.create_examples(input_data, "train", aug)
+        return self.create_examples(input_data, "train", aug, single_qac)
 
     def get_dev_examples(self, data_dir, filename=None):
         """

@@ -4,10 +4,19 @@ import numpy as np
 from tqdm import tqdm
 import os
 import time
-# from spacy.lang.en import English
+import subprocess
+import sys
+from typing import List
+import pdb #TODO:REMOVE
+
+
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+import spacy
+# python3 -m spacy download en_core_web_sm
 
 from copy import deepcopy
-
 
 
 def input_data_to_df(input_data):
@@ -91,7 +100,7 @@ def get_combined_de(de1, de2):
                 print('new_char_span:', combined_context[begin_c:end_c+1])
                 print('Answer in dataexample:', de2['qas'][0]['answers'][0])
                 print('old_char_span:', old_char_span)
-                import pdb;pdb.set_trace()
+                pdb.set_trace()
                 print('next..')
 
     combined_qas = [de1['qas'][0], row2_updated_qas]
@@ -151,6 +160,226 @@ def split_dataframe(df, chunk_size = 8):
     for i in range(num_chunks):
         chunks.append(df[i*chunk_size:(i+1)*chunk_size])
     return chunks
+
+def text_to_MRQA_tokens(text, nlp):
+    doc = nlp(text)
+    words = [token.text for token in doc]
+    spaces = [True if tok.whitespace_ else False for tok in doc]
+    # doc2 = spacy.tokens.doc.Doc(nlp.vocab, words=words, spaces=spaces)
+    tokens_length = [len(t) for t in words]
+    tokens_beginning_chars = [0] + list(np.cumsum(tokens_length[:-1]) + np.cumsum(spaces)[:-1])
+    MRQA_text_tokens= [[token_name, token_begining_char] for token_name, token_begining_char in zip(words, tokens_beginning_chars)]
+    return MRQA_text_tokens, words, spaces
+
+def build_MRQA_example(id: str,
+                       context: str,
+                       questions_id: List[str],
+                       questions_qids: List[str],
+                       questions_list: List[str],
+                       answers_list: List[str],
+                       detected_answers_list:  List[List[str]],
+                       nlp):
+    """
+
+    :param id:
+    :param context:
+    :param questions_id:
+    :param questions_qids:
+    :param questions_list:
+    :param answers_list:
+    :param detected_answers_list:
+    :param nlp:
+    :return: Feed in simple text and get back an MRQA example in dict form
+    """
+
+    context_tokens, words, spaces = text_to_MRQA_tokens(context, nlp)
+
+    qas = []
+    for q_id, q_qids, q, answers, det_ans in zip(questions_id, questions_qids, questions_list, answers_list, detected_answers_list):
+        single_qas = {}
+        single_qas['id'] = q_id
+        single_qas['qid'] = q_qids
+        single_qas['question'] = q
+        single_qas['question_tokens'] = text_to_MRQA_tokens(q, nlp)
+        single_qas['answers'] = answers
+
+        detected_answers = []
+        for det_answer in det_ans:
+            ans = det_answer['text']
+
+            single_det_ans = {}
+            single_det_ans['text'] = ans
+
+            # Inclusive char span
+            pdb.set_trace()
+            answer_begin_char = context.find(ans)
+            answer_end_char = answer_begin_char+len(ans)
+            single_det_ans['char_spans'] = [[answer_begin_char, answer_end_char - 1]]
+
+            # Inclusive token span
+            ans_doc = nlp(ans)
+            ans_words_length = len([token.text for token in ans_doc])
+            ans_spaces = [True if tok.whitespace_ else False for tok in ans_doc]
+
+            for i,cont_token in enumerate(context_tokens):
+                ans_words = [x[0] for x in context_tokens[i:i+ans_words_length]]
+                try:
+                    # Will succeed only on things that can combine to an answer
+                    recon_ans = str(spacy.tokens.doc.Doc(nlp.vocab, words=ans_words, spaces=ans_spaces))
+                except:
+                    continue
+                if recon_ans == ans:
+                    ans_begin_token_ind = i
+                    ans_end_token_ind = i + ans_words_length - 1 # Inclusive token span
+                    break;
+
+            single_det_ans['token_spans'] = [[ans_begin_token_ind, ans_end_token_ind]]
+
+            detected_answers.append(single_det_ans)
+
+            # E.g. [{'text': '$31.5 billion', 'char_spans': [[102, 114]], 'token_spans': [[18, 20]]}]
+            single_qas['detected_answers'] = detected_answers
+
+        qas.append(single_qas)
+
+    return {'id': id,
+            'context': context,
+            'context_tokens': context_tokens,
+            'qas': qas}
+
+def sanity_checks_shuffled_vs_regular_row(row, shuffled_row):
+    # same context different order - split by space and sort be words
+    print_row_example(row)
+    print_row_example(shuffled_row)
+
+    assert sorted(row['context'].split(' ')) == sorted(shuffled_row['context'].split(' '))
+    for qas, shuffled_qas in zip(row['qas'], shuffled_row['qas']):
+        pdb.set_trace()
+        assert qas['answers'] == shuffled_qas['answers'], print(qas['answers'], shuffled_qas['answers'])
+        assert qas['question'] == shuffled_qas['question'], print(qas['question'], shuffled_qas['question'])
+        for det_ans, shuffled_det_ans in zip(qas['detected_answers'], shuffled_qas['detected_answers']):
+            print('det_ans', det_ans)
+            print('\n')
+            print('det_ans', shuffled_det_ans)
+
+            assert det_ans['text'] == shuffled_det_ans['text']
+
+            # Same answer is correctly identified in context text
+            row_answer_from_char_span = row['context_tokens'][int(det_ans['char_spans'][0][0]):int(det_ans['char_spans'][0][1])]
+            shuffled_answer_from_char_span = shuffled_row['context_tokens'][int(shuffled_det_ans['char_spans'][0][0]):int(shuffled_det_ans['char_spans'][0][1])]
+            assert row_answer_from_char_span == shuffled_answer_from_char_span, print(row_answer_from_char_span, shuffled_answer_from_char_span)
+
+            # Same tokens are correctly identified in context tokens
+            row_answer_tokens_from_char_span = row['context_tokens'][int(det_ans['token_spans'][0][0]):int(det_ans['token_spans'][0][1])]
+            shuffled_answer_tokens_from_char_span = shuffled_row['context_tokens'][int(shuffled_det_ans['token_spans'][0][0]):int(shuffled_det_ans['token_spans'][0][1])]
+            assert row_answer_tokens_from_char_span == shuffled_answer_tokens_from_char_span, print(row_answer_tokens_from_char_span,shuffled_answer_tokens_from_char_span)
+
+
+def rebuild_example_test(row, nlp):
+    detected_answers_inds
+    new_row = build_MRQA_example(id = row['id'],
+                                context = row['context'],
+                                questions_id = [x['id'] for x in row['qas']],
+                                questions_qids = [x['qid'] for x in row['qas']],
+                                questions_list = [x['question'] for x in row['qas']],
+                                answers_list = [x['answers'] for x in row['qas']],
+                                detected_answers_list=[x['detected_answers'] for x in row['qas']],
+                                nlp = nlp)
+
+    sanity_checks_shuffled_vs_regular_row(row, new_row)
+
+
+def shuffle_single_example(row, nlp):
+
+    # when shuffling context we need to update:
+
+    # Shuffle
+    context = row['context']
+    doc = nlp(context)
+    # for token in doc:
+    #     print(token.text, token.pos_, token.dep_)
+    sentences = [sent.text.strip() for sent in doc.sents]
+    sentences_length = [len(sent) for sent in sentences]
+    # TODO inclusive?
+    sentences_begin_inds = [0] + list(np.cumsum(sentences_length[:-1]) + np.array(range(len(sentences_length) - 1)))
+
+    # Shuffle Context and Context Tokens
+    new_sent_order_inds = np.random.permutation(len(sentences))
+    shuffled_sentences = [sentences[sent_order] for sent_order in new_sent_order_inds]
+    shuffled_sentences_length = [len(sent) for sent in shuffled_sentences]
+    shuffled_sentences_begin_inds = [0] + list(np.cumsum(shuffled_sentences_length[:-1]) + np.array(range(len(shuffled_sentences_length) - 1)))
+    shuffled_context = ' '.join(shuffled_sentences) #Changing
+    shuffled_tokens, shuffled_context_words, shuffled_context_spaces = text_to_MRQA_tokens(shuffled_context, nlp) #Changing
+
+    qas = []
+    for row_qas in row['qas']:
+        single_qas = {}
+        single_qas['id'] = row_qas['id']
+        single_qas['qid'] = row_qas['qid']
+        single_qas['question'] = row_qas['question']
+        single_qas['question_tokens'] = row_qas['question_tokens']
+        single_qas['answers'] = row_qas['answers']
+
+        detected_answers = []
+        for det_answer in row_qas['detected_answers']:
+            single_det_ans = {}
+            single_det_ans['text'] = det_answer['text']
+            answer_start_ind = int(det_answer['char_spans'][0][0])
+            answer_len = int(det_answer['char_spans'][0][1]) - answer_start_ind
+            answer_end_ind = answer_start_ind + answer_len
+
+
+            # Find to what sentence original answers maps into
+            for i, sent_begin_ind in enumerate(shuffled_sentences_begin_inds):
+                if answer_start_ind < sent_begin_ind: #TODO: maybe <=?
+                    sentence_answer_ind = i
+                    break
+
+            # Find how many chars from beginning of sentence is answer
+            answer_char_offset_from_sentance_answer = answer_start_ind - sentences_begin_inds[i]
+
+            # Find how many character lead to where sentenace is now positioned
+            new_index_of_shuffled_sentance = np.where(new_sent_order_inds == sentence_answer_ind)[0][0] #Only one match
+            text_before_shuffled_answer = ' '.join(shuffled_sentences[:new_index_of_shuffled_sentance+1])
+            shuffled_answer_start_ind = len(text_before_shuffled_answer) + 1 + answer_char_offset_from_sentance_answer
+            shuffled_answer_end_ind = shuffled_answer_start_ind + answer_len
+            single_det_ans['char_spans'] = [[shuffled_answer_start_ind, shuffled_answer_end_ind]]  # Changing
+
+            # Verify Same answer is correctly identified in context - Add one to last index because indices are inclusive
+            old_ans = context[answer_start_ind:answer_end_ind + 1]
+            pdb.set_trace()
+            new_ans = shuffled_context[shuffled_answer_start_ind:shuffled_answer_end_ind + 1]
+            assert old_ans == new_ans, pdb.set_trace()
+
+            single_det_ans['token_spans'] = '' #Changing
+
+            detected_answers.append(single_det_ans)
+
+        single_qas['detected_answers'] = detected_answers
+
+        qas.append(single_qas)
+
+    pdb.set_trace()
+    print('Debuggg')
+
+    return {'id': row['id'],
+            'context': shuffled_context,
+            'context_tokens': shuffled_tokens,
+            'qas': qas}
+
+
+def shuffle_context(df, seed=None):
+    try:
+        nlp = spacy.load("en_core_web_sm")
+    except:
+        subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+        nlp = spacy.load("en_core_web_sm")
+
+    # set numpy seed here to get perfect results every time
+    for i in range(0, len(df)):
+        row_copy = pd.Series(deepcopy(df.iloc[i].to_dict()))
+        shuffle_single_example(row_copy, nlp)
+
 
 def qas_npairs_unite(df, pairs, seed=None):
     # Divide and runs in clique - aggrigate in end
@@ -214,8 +443,8 @@ def create_moasic_unite_npairs_exp_data(squad_path, pairs=8, final_single_qac_tr
                 uni_df = split_qas_to_single_qac_triplets(uni_df)
             write_df(uni_df, f'{output_dir}/squad-train-seed-{seed}-num-examples-{num_examples}.jsonl')
 
-def print_df_example(df, index=0):
-    row = df.iloc[index]
+
+def print_row_example(row):
     print("="*15 + row['id'] + "="*15)
     print('\n'+"="*15 + 'QAS' + "="*15)
     for qas in row['qas']:
@@ -228,6 +457,10 @@ def print_df_example(df, index=0):
     # print('\n'+"="*15 + 'Context Tokens' + "="*15)
     # print(row['context_tokens'])
 
+def print_df_example(df, index=0):
+    row = df.iloc[index]
+    print_row_example(row)
+
 def mosaic_npairs_single_qac_aug(input_data, pairs=2, final_single_qac_triplets=True, seed=None):
     df = input_data_to_df(input_data)
     split_df = split_qas_to_single_qac_triplets(df)
@@ -236,6 +469,13 @@ def mosaic_npairs_single_qac_aug(input_data, pairs=2, final_single_qac_triplets=
         uni_single_qac_df = split_qas_to_single_qac_triplets(uni_df)
         return uni_single_qac_df
     return uni_df
+
+def context_shuffle_aug(input_data):
+    df = input_data_to_df(input_data)
+    split_df = split_qas_to_single_qac_triplets(df)
+    random_sent_order_df = shuffle_context(split_df)
+    return random_sent_order_df
+
 
 if __name__ == '__main__':
     # train_file_name = f'squad/moasic_unite/squad-train-seed-42-num-examples-16.jsonl'

@@ -540,7 +540,7 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, output_examples=Fal
             if evaluate:
                 examples = processor.get_dev_examples(args.data_dir, filename=args.predict_file)
             else:
-                examples = processor.get_train_examples(args.data_dir, filename=args.train_file, aug=args.aug)
+                examples = processor.get_train_examples(args.data_dir, filename=args.train_file, aug=args.aug, single_qac=args.single_qac)
 
         # TODO: remove debugging
         # features2, dataset2 = squad_convert_examples_to_features(examples=[examples[0]], tokenizer=tokenizer,max_seq_length=args.max_seq_length,doc_stride=args.doc_stride,max_query_length=args.max_query_length,is_training=not evaluate, return_dataset="pt",threads=args.threads)
