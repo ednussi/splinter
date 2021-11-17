@@ -589,6 +589,10 @@ def main():
         torch.distributed.init_process_group(backend="nccl")
         args.n_gpu = 1
     args.device = device
+    # Generate outputs path if doesn't exist
+    if not os.path.exists(args.output_dir):
+        logger.info("Generating path %s", args.output_dir)
+        os.mkdir(args.output_dir)
     with open(os.path.join(args.output_dir, 'args.pkl'), 'wb') as f:
         pickle.dump(args, f)
     with open(os.path.join(args.output_dir, 'args.txt'), 'w') as f:

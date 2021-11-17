@@ -300,8 +300,8 @@ def shuffle_single_example(row, nlp):
     #     print(token.text, token.pos_, token.dep_)
     sentences = [sent.text.strip() for sent in doc.sents]
     sentences_length = [len(sent) for sent in sentences]
-    # TODO inclusive?
-    sentences_begin_inds = [0] + list(np.cumsum(sentences_length[:-1]) + np.array(range(len(sentences_length) - 1)))
+    # such that context[index] is the actual first character of sentance
+    sentences_begin_inds = [0] + list(np.cumsum(sentences_length[:-1]) + np.array(range(1, len(sentences_length))))
 
     # Shuffle Context and Context Tokens
     new_sent_order_inds = np.random.permutation(len(sentences))
@@ -327,29 +327,47 @@ def shuffle_single_example(row, nlp):
             answer_start_ind = int(det_answer['char_spans'][0][0])
             answer_len = int(det_answer['char_spans'][0][1]) - answer_start_ind
             answer_end_ind = answer_start_ind + answer_len
+            old_ans = context[answer_start_ind:answer_end_ind + 1]
 
-
+            sentence_answer_ind = len(shuffled_sentences_begin_inds) - 1 #last sentance index
             # Find to what sentence original answers maps into
             for i, sent_begin_ind in enumerate(shuffled_sentences_begin_inds):
-                if answer_start_ind < sent_begin_ind: #TODO: maybe <=?
-                    sentence_answer_ind = i
+                if answer_start_ind <= sent_begin_ind: #TODO: maybe <=?
+                    sentence_answer_ind = i - 1
+                    if old_ans not in shuffled_sentences[sentence_answer_ind]:
+                        
+                        print('old_ans', old_ans)
+                        print( 'shuffled_sentences[sentence_answer_ind]', shuffled_sentences[sentence_answer_ind])
+                        pdb.set_trace()
+                        print('DEBUGGG1')
+                        # bad ind
+                        #  
+                    # assert old_ans in shuffled_sentences[sentence_answer_ind]
                     break
 
+
             # Find how many chars from beginning of sentence is answer
-            answer_char_offset_from_sentance_answer = answer_start_ind - sentences_begin_inds[i]
+            answer_char_offset_from_sentance_answer = answer_start_ind - sentences_begin_inds[sentence_answer_ind]
 
             # Find how many character lead to where sentenace is now positioned
             new_index_of_shuffled_sentance = np.where(new_sent_order_inds == sentence_answer_ind)[0][0] #Only one match
-            text_before_shuffled_answer = ' '.join(shuffled_sentences[:new_index_of_shuffled_sentance+1])
-            shuffled_answer_start_ind = len(text_before_shuffled_answer) + 1 + answer_char_offset_from_sentance_answer
+
+            text_before_shuffled_answer = ' '.join(shuffled_sentences[:new_index_of_shuffled_sentance])
+            # sanity
+            is_first_sentance = bool(new_index_of_shuffled_sentance)
+            shuffled_answer_start_ind = len(text_before_shuffled_answer) + answer_char_offset_from_sentance_answer + int(is_first_sentance)
             shuffled_answer_end_ind = shuffled_answer_start_ind + answer_len
             single_det_ans['char_spans'] = [[shuffled_answer_start_ind, shuffled_answer_end_ind]]  # Changing
 
             # Verify Same answer is correctly identified in context - Add one to last index because indices are inclusive
-            old_ans = context[answer_start_ind:answer_end_ind + 1]
-            pdb.set_trace()
-            new_ans = shuffled_context[shuffled_answer_start_ind:shuffled_answer_end_ind + 1]
-            assert old_ans == new_ans, pdb.set_trace()
+            new_ans = shuffled_context[shuffled_answer_start_ind:shuffled_answer_end_ind+1]
+            if old_ans != new_ans:
+                print('old_ans', old_ans)
+                print( 'new_ans', new_ans)
+                pdb.set_trace()
+
+                print('DEBUG2!!')
+            assert old_ans == new_ans, print('old_ans == new_ans',old_ans,new_ans)
 
             single_det_ans['token_spans'] = '' #Changing
 
@@ -358,9 +376,6 @@ def shuffle_single_example(row, nlp):
         single_qas['detected_answers'] = detected_answers
 
         qas.append(single_qas)
-
-    pdb.set_trace()
-    print('Debuggg')
 
     return {'id': row['id'],
             'context': shuffled_context,
