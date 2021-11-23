@@ -113,12 +113,10 @@ class MRQAProcessor:
 
         elif aug_type.startswith('context-shuffle'):
             aug_df = context_shuffle_aug(input_data)
-
         else:
             import pdb; pdb.set_trace()
 
         # Verify order is different each time it's called
-        #TODO: Remove
         print(aug_df['context'][:4])
 
         examples = self.df_to_MRQA_list(aug_df)

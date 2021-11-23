@@ -169,7 +169,19 @@ def text_to_MRQA_tokens(text, nlp):
     tokens_length = [len(t) for t in words]
     tokens_beginning_chars = [0] + list(np.cumsum(tokens_length[:-1]) + np.cumsum(spaces)[:-1])
     MRQA_text_tokens= [[token_name, token_begining_char] for token_name, token_begining_char in zip(words, tokens_beginning_chars)]
-    return MRQA_text_tokens, words, spaces
+
+    # Get per sentance
+    MRQA_text_tokens_per_sentence = []
+    sentences = [sent.text.strip() for sent in doc.sents]
+    for sent in sentences:
+        words = [token.text for token in doc]
+        spaces = [True if tok.whitespace_ else False for tok in doc]
+        tokens_length = [len(t) for t in words]
+        tokens_beginning_chars = [0] + list(np.cumsum(tokens_length[:-1]) + np.cumsum(spaces)[:-1])
+        MRQA_text_tokens_per_sentence.append([[token_name, token_begining_char] for token_name, token_begining_char in zip(words, tokens_beginning_chars)])
+
+
+    return MRQA_text_tokens, MRQA_text_tokens_per_sentence, words, spaces
 
 def build_MRQA_example(id: str,
                        context: str,
@@ -192,7 +204,7 @@ def build_MRQA_example(id: str,
     :return: Feed in simple text and get back an MRQA example in dict form
     """
 
-    context_tokens, words, spaces = text_to_MRQA_tokens(context, nlp)
+    context_tokens, MRQA_text_tokens_per_sentence, words, spaces = text_to_MRQA_tokens(context, nlp)
 
     qas = []
     for q_id, q_qids, q, answers, det_ans in zip(questions_id, questions_qids, questions_list, answers_list, detected_answers_list):
@@ -200,7 +212,7 @@ def build_MRQA_example(id: str,
         single_qas['id'] = q_id
         single_qas['qid'] = q_qids
         single_qas['question'] = q
-        single_qas['question_tokens'] = text_to_MRQA_tokens(q, nlp)
+        single_qas['question_tokens'] = text_to_MRQA_tokens(q, nlp) #Weird?
         single_qas['answers'] = answers
 
         detected_answers = []
@@ -231,7 +243,7 @@ def build_MRQA_example(id: str,
                 if recon_ans == ans:
                     ans_begin_token_ind = i
                     ans_end_token_ind = i + ans_words_length - 1 # Inclusive token span
-                    break;
+                    break
 
             single_det_ans['token_spans'] = [[ans_begin_token_ind, ans_end_token_ind]]
 
@@ -295,21 +307,22 @@ def shuffle_single_example(row, nlp):
 
     # Shuffle
     context = row['context']
+    context_tokens = row['context_tokens']
     doc = nlp(context)
     # for token in doc:
     #     print(token.text, token.pos_, token.dep_)
     sentences = [sent.text.strip() for sent in doc.sents]
     sentences_length = [len(sent) for sent in sentences]
     # such that context[index] is the actual first character of sentance
-    sentences_begin_inds = [0] + list(np.cumsum(sentences_length[:-1]) + np.array(range(1, len(sentences_length))))
+    sentences_begin_inds = np.array([0] + list(np.cumsum(sentences_length[:-1]) + np.array(range(1, len(sentences_length)))))
 
     # Shuffle Context and Context Tokens
     new_sent_order_inds = np.random.permutation(len(sentences))
     shuffled_sentences = [sentences[sent_order] for sent_order in new_sent_order_inds]
     shuffled_sentences_length = [len(sent) for sent in shuffled_sentences]
-    shuffled_sentences_begin_inds = [0] + list(np.cumsum(shuffled_sentences_length[:-1]) + np.array(range(len(shuffled_sentences_length) - 1)))
+    shuffled_sentences_begin_inds = np.array([0] + list(np.cumsum(shuffled_sentences_length[:-1]) + np.array(range(len(shuffled_sentences_length) - 1))))
     shuffled_context = ' '.join(shuffled_sentences) #Changing
-    shuffled_tokens, shuffled_context_words, shuffled_context_spaces = text_to_MRQA_tokens(shuffled_context, nlp) #Changing
+    shuffled_tokens, shuffled_MRQA_text_tokens_per_sentence, shuffled_context_words, shuffled_context_spaces = text_to_MRQA_tokens(shuffled_context, nlp) #Changing
 
     qas = []
     for row_qas in row['qas']:
@@ -321,6 +334,7 @@ def shuffle_single_example(row, nlp):
         single_qas['answers'] = row_qas['answers']
 
         detected_answers = []
+        DEBUG = False
         for det_answer in row_qas['detected_answers']:
             single_det_ans = {}
             single_det_ans['text'] = det_answer['text']
@@ -328,30 +342,36 @@ def shuffle_single_example(row, nlp):
             answer_len = int(det_answer['char_spans'][0][1]) - answer_start_ind
             answer_end_ind = answer_start_ind + answer_len
             old_ans = context[answer_start_ind:answer_end_ind + 1]
+            old_tokens = context_tokens[int(det_answer['token_spans'][0][0]):int(det_answer['token_spans'][0][1])+1]
+            sentence_answer_ind_in_shuffled_sents = len(shuffled_sentences_begin_inds) - 1 #last sentance index
+            sentence_answer_ind_in_orig_sents = len(sentences_begin_inds) - 1 #last sentance index
+            
+            # Find to what sentence original answer maps into original context
+            sentence_answer_ind_in_orig_sents = sum(answer_start_ind >= sentences_begin_inds) - 1
+            answer_char_offset_from_sentance_answer = answer_start_ind - sentences_begin_inds[sentence_answer_ind_in_orig_sents]
+            # Test offset is correct
+            if not sentences[sentence_answer_ind_in_orig_sents][answer_char_offset_from_sentance_answer:].startswith(old_ans):
+                print('old_ans', old_ans)
+                print('sentences[sentence_answer_ind_in_orig_sents][answer_char_offset_from_sentance_answer:]', sentences[sentence_answer_ind_in_orig_sents][answer_char_offset_from_sentance_answer:])
+                pdb.set_trace()
+                print('DEBUG3')
 
-            sentence_answer_ind = len(shuffled_sentences_begin_inds) - 1 #last sentance index
             # Find to what sentence original answers maps into
-            for i, sent_begin_ind in enumerate(shuffled_sentences_begin_inds):
-                if answer_start_ind <= sent_begin_ind: #TODO: maybe <=?
-                    sentence_answer_ind = i - 1
-                    if old_ans not in shuffled_sentences[sentence_answer_ind]:
-                        
-                        print('old_ans', old_ans)
-                        print( 'shuffled_sentences[sentence_answer_ind]', shuffled_sentences[sentence_answer_ind])
-                        pdb.set_trace()
-                        print('DEBUGGG1')
-                        # bad ind
-                        #  
-                    # assert old_ans in shuffled_sentences[sentence_answer_ind]
-                    break
+            sentence_answer_ind_in_shuffled_sents = np.where(new_sent_order_inds == sentence_answer_ind_in_orig_sents)[0][0] 
+            if old_ans not in shuffled_sentences[sentence_answer_ind_in_shuffled_sents]:
+                print('old_ans', old_ans)
+                print( 'shuffled_sentences[sentence_answer_ind_in_shuffled_sents]', shuffled_sentences[sentence_answer_ind_in_shuffled_sents])
+                pdb.set_trace()
+                print('Bad \'sentence_answer_ind_in_shuffled_sents\' index')
 
-
-            # Find how many chars from beginning of sentence is answer
-            answer_char_offset_from_sentance_answer = answer_start_ind - sentences_begin_inds[sentence_answer_ind]
+            # # Find how many chars from beginning of sentence is answer
+            # new_ans_sent = shuffled_sentences[sentence_answer_ind_in_shuffled_sents][answer_char_offset_from_sentance_answer:]
+            # if DEBUG:
+            #     print('answer_char_offset_from_sentance_answer', answer_char_offset_from_sentance_answer)
+            #     print('new_ans_sent', new_ans_sent)
 
             # Find how many character lead to where sentenace is now positioned
-            new_index_of_shuffled_sentance = np.where(new_sent_order_inds == sentence_answer_ind)[0][0] #Only one match
-
+            new_index_of_shuffled_sentance = np.where(new_sent_order_inds == sentence_answer_ind_in_orig_sents)[0][0] #Only one match
             text_before_shuffled_answer = ' '.join(shuffled_sentences[:new_index_of_shuffled_sentance])
             # sanity
             is_first_sentance = bool(new_index_of_shuffled_sentance)
@@ -365,12 +385,18 @@ def shuffle_single_example(row, nlp):
                 print('old_ans', old_ans)
                 print( 'new_ans', new_ans)
                 pdb.set_trace()
-
                 print('DEBUG2!!')
+
             assert old_ans == new_ans, print('old_ans == new_ans',old_ans,new_ans)
 
-            single_det_ans['token_spans'] = '' #Changing
+            shuffled_answer_start_ind, shuffled_answer_end_ind
+            shuffled_answer_token_start_ind = sum([shuffled_answer_start_ind > x[1] for x in shuffled_tokens])
+            shuffled_answer_token_end_ind = sum([shuffled_answer_end_ind > x[1] for x in shuffled_tokens]) - 1 #Inclusive so removing 1 for span
+            single_det_ans['token_spans'] = [[shuffled_answer_token_start_ind, shuffled_answer_token_end_ind]] #Changing
 
+            # Sanity checks - tokens spans create same answer
+            original_tokens = context_tokens[int(det_answer['token_spans'][0][0]):int(det_answer['token_spans'][0][1])]
+            assert [x[0] for x in shuffled_tokens[shuffled_answer_token_start_ind:shuffled_answer_token_end_ind]] == [x[0] for x in original_tokens]
             detected_answers.append(single_det_ans)
 
         single_qas['detected_answers'] = detected_answers
@@ -391,10 +417,12 @@ def shuffle_context(df, seed=None):
         nlp = spacy.load("en_core_web_sm")
 
     # set numpy seed here to get perfect results every time
-    for i in range(0, len(df)):
+    shuffled_df = pd.DataFrame()
+    for i in tqdm(range(0, len(df)), desc='Creating Shuffle Augs'):
         row_copy = pd.Series(deepcopy(df.iloc[i].to_dict()))
-        shuffle_single_example(row_copy, nlp)
-
+        single_qas = shuffle_single_example(row_copy, nlp)
+        shuffled_df = shuffled_df.append(single_qas, ignore_index=True)
+    return shuffled_df
 
 def qas_npairs_unite(df, pairs, seed=None):
     # Divide and runs in clique - aggrigate in end
@@ -486,6 +514,7 @@ def mosaic_npairs_single_qac_aug(input_data, pairs=2, final_single_qac_triplets=
     return uni_df
 
 def context_shuffle_aug(input_data):
+    pdb.set_trace()
     df = input_data_to_df(input_data)
     split_df = split_qas_to_single_qac_triplets(df)
     random_sent_order_df = shuffle_context(split_df)
