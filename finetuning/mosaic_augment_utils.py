@@ -514,12 +514,17 @@ def mosaic_npairs_single_qac_aug(input_data, pairs=2, final_single_qac_triplets=
     return uni_df
 
 def context_shuffle_aug(input_data):
-    pdb.set_trace()
     df = input_data_to_df(input_data)
     split_df = split_qas_to_single_qac_triplets(df)
     random_sent_order_df = shuffle_context(split_df)
     return random_sent_order_df
 
+
+def random_text_add_aug(input_data):
+    df = input_data_to_df(input_data)
+    split_df = split_qas_to_single_qac_triplets(df)
+    random_text_added_df = add_random_text(split_df)
+    return random_text_added_df   
 
 if __name__ == '__main__':
     # train_file_name = f'squad/moasic_unite/squad-train-seed-42-num-examples-16.jsonl'
