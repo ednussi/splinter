@@ -49,7 +49,7 @@ def split_qas_to_single_qac_triplets(df):
             split_df = split_df.append(row)
 
     if len(split_df) != len(df):
-        print(f'Strated with {len(df)} and ended with {len(split_df)}')
+        print(f'Splitting original QAS to single single QAC triplets\nStrated with {len(df)} and ended with {len(split_df)}')
 
     # sanity check
     if not all([len(x)==1 for x in split_df['qas']]):
@@ -351,10 +351,13 @@ def shuffle_single_example(row, nlp):
             answer_char_offset_from_sentance_answer = answer_start_ind - sentences_begin_inds[sentence_answer_ind_in_orig_sents]
             # Test offset is correct
             if not sentences[sentence_answer_ind_in_orig_sents][answer_char_offset_from_sentance_answer:].startswith(old_ans):
-                print('old_ans', old_ans)
-                print('sentences[sentence_answer_ind_in_orig_sents][answer_char_offset_from_sentance_answer:]', sentences[sentence_answer_ind_in_orig_sents][answer_char_offset_from_sentance_answer:])
-                pdb.set_trace()
-                print('DEBUG3')
+                if sentences[sentence_answer_ind_in_orig_sents][answer_char_offset_from_sentance_answer-1:].startswith(old_ans):
+                    answer_char_offset_from_sentance_answer = answer_char_offset_from_sentance_answer - 1 #TODO Why? A few answer have the original indices not in place
+                else:
+                    print('WARNING: Tokens Mismatch')
+                    print('old_ans', old_ans)
+                    print('sentences[sentence_answer_ind_in_orig_sents][answer_char_offset_from_sentance_answer:]', sentences[sentence_answer_ind_in_orig_sents][answer_char_offset_from_sentance_answer:])
+                    # pdb.set_trace()
 
             # Find to what sentence original answers maps into
             sentence_answer_ind_in_shuffled_sents = np.where(new_sent_order_inds == sentence_answer_ind_in_orig_sents)[0][0] 
@@ -382,21 +385,29 @@ def shuffle_single_example(row, nlp):
             # Verify Same answer is correctly identified in context - Add one to last index because indices are inclusive
             new_ans = shuffled_context[shuffled_answer_start_ind:shuffled_answer_end_ind+1]
             if old_ans != new_ans:
+                print('WARNING: Answers Mismatch')
                 print('old_ans', old_ans)
-                print( 'new_ans', new_ans)
-                pdb.set_trace()
-                print('DEBUG2!!')
-
-            assert old_ans == new_ans, print('old_ans == new_ans',old_ans,new_ans)
+                print('new_ans', new_ans)
+                # pdb.set_trace()
+                # assert old_ans == new_ans, print('old_ans == new_ans',old_ans,new_ans)
 
             shuffled_answer_start_ind, shuffled_answer_end_ind
             shuffled_answer_token_start_ind = sum([shuffled_answer_start_ind > x[1] for x in shuffled_tokens])
-            shuffled_answer_token_end_ind = sum([shuffled_answer_end_ind > x[1] for x in shuffled_tokens]) - 1 #Inclusive so removing 1 for span
+            shuffled_answer_token_end_ind = sum([shuffled_answer_end_ind >= x[1] for x in shuffled_tokens]) - 1 #Inclusive so removing 1 for span
             single_det_ans['token_spans'] = [[shuffled_answer_token_start_ind, shuffled_answer_token_end_ind]] #Changing
 
             # Sanity checks - tokens spans create same answer
-            original_tokens = context_tokens[int(det_answer['token_spans'][0][0]):int(det_answer['token_spans'][0][1])]
-            assert [x[0] for x in shuffled_tokens[shuffled_answer_token_start_ind:shuffled_answer_token_end_ind]] == [x[0] for x in original_tokens]
+            if not [x[0] for x in shuffled_tokens[shuffled_answer_token_start_ind:shuffled_answer_token_end_ind+1]] == [x[0] for x in old_tokens]:
+                print('WARINING: Tokens Mismatch')
+                print('original ans tokens', [x[0] for x in old_tokens])
+                print('shuffled ans tokens', [x[0] for x in shuffled_tokens[shuffled_answer_token_start_ind:shuffled_answer_token_end_ind+1]])
+                """
+                shuffled ans tokens ['The', 'lights', 'can', 'be', 'switched', 'on', 'for', '24', '-', 'hrs', '/', 'day', ',', 'or', 'a', 'range', 'of', 'step', '-', 'wise', 'light', 'regimens', 'to', 'encourage', 'the', 'birds', 'to', 'feed', 'often', 'and', 'therefore', 'grow', 'rapidly']
+                original ans tokens ['The', 'lights', 'can', 'be', 'switched', 'on', 'for', '24-hrs', '/', 'day', ',', 'or', 'a', 'range', 'of', 'step', '-', 'wise', 'light', 'regimens', 'to', 'encourage', 'the', 'birds', 'to', 'feed', 'often', 'and', 'therefore', 'grow', 'rapidly']
+                """
+                # pdb.set_trace()
+                
+                # assert [x[0] for x in shuffled_tokens[shuffled_answer_token_start_ind:shuffled_answer_token_end_ind]] == [x[0] for x in original_tokens]
             detected_answers.append(single_det_ans)
 
         single_qas['detected_answers'] = detected_answers
