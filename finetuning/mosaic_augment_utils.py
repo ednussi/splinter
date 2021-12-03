@@ -288,7 +288,6 @@ def sanity_checks_shuffled_vs_regular_row(row, shuffled_row):
 
 
 def rebuild_example_test(row, nlp):
-    detected_answers_inds
     new_row = build_MRQA_example(id = row['id'],
                                 context = row['context'],
                                 questions_id = [x['id'] for x in row['qas']],
@@ -420,12 +419,16 @@ def shuffle_single_example(row, nlp):
             'qas': qas}
 
 
-def shuffle_context(df, seed=None):
+def get_nlp():
     try:
         nlp = spacy.load("en_core_web_sm")
     except:
         subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
         nlp = spacy.load("en_core_web_sm")
+    return nlp
+
+def shuffle_context(df, seed=None):
+    nlp = get_nlp()
 
     # set numpy seed here to get perfect results every time
     shuffled_df = pd.DataFrame()
@@ -434,6 +437,45 @@ def shuffle_context(df, seed=None):
         single_qas = shuffle_single_example(row_copy, nlp)
         shuffled_df = shuffled_df.append(single_qas, ignore_index=True)
     return shuffled_df
+
+
+def concat_single_example(row, text_to_concat, before=True):
+    nlp = get_nlp()
+    context = row['context']
+    qas = row['qas']
+    id = row['id']
+    if before:
+        concat_context_tokens, _, _, _ = text_to_MRQA_tokens(text_to_concat, nlp)
+
+        de2 = {'id': '',
+            'context': text_to_concat,
+            'context_tokens': concat_context_tokens,
+            'qas': qas}
+        qas, concat_context_tokens, concat_context, id = get_combined_de(row, de2)
+
+    else:
+        concat_context = f'{context} {text_to_concat}'
+        concat_context_tokens, _, _, _ = text_to_MRQA_tokens(concat_context, nlp)
+
+    return {'id': id,
+            'context': concat_context,
+            'context_tokens': concat_context_tokens,
+            'qas': qas}
+
+def concat_text(df, text_to_concat):
+    # set numpy seed here to get perfect results every time
+    concat_text_df = pd.DataFrame()
+    for i in tqdm(range(0, len(df)), desc='Creating Shuffle Augs'):
+        row_copy = pd.Series(deepcopy(df.iloc[i].to_dict()))
+        # append fix text
+        text_to_concat = 'HEY ' * 20
+        concat_before = bool(round(np.random.rand())) #randomly roll where to concat text
+        print(concat_before)
+        single_qas = concat_single_example(row_copy, text_to_concat, before=concat_before)
+        concat_text_df = concat_text_df.append(single_qas, ignore_index=True)
+    return concat_text_df
+
+
 
 def qas_npairs_unite(df, pairs, seed=None):
     # Divide and runs in clique - aggrigate in end
@@ -530,12 +572,20 @@ def context_shuffle_aug(input_data):
     random_sent_order_df = shuffle_context(split_df)
     return random_sent_order_df
 
+def concat_random_chars(input_data):
+    LOREM_IPSUM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+    text_to_concat = LOREM_IPSUM
+    return mosaic_concat_text(input_data, text_to_concat)
 
-def random_text_add_aug(input_data):
+def concat_coherent_text(input_data):
+    text_to_concat = ''
+    return mosaic_concat_text(input_data, text_to_concat)
+
+def mosaic_concat_text(input_data, text_to_concat):
     df = input_data_to_df(input_data)
     split_df = split_qas_to_single_qac_triplets(df)
-    random_text_added_df = add_random_text(split_df)
-    return random_text_added_df   
+    concat_df = concat_text(split_df, text_to_concat)
+    return concat_df
 
 if __name__ == '__main__':
     # train_file_name = f'squad/moasic_unite/squad-train-seed-42-num-examples-16.jsonl'
