@@ -445,13 +445,12 @@ def concat_single_example(row, text_to_concat, before=True):
     qas = row['qas']
     id = row['id']
     if before:
-        concat_context = f'{text_to_concat} {context}'
-        concat_context_tokens, _, _, _ = text_to_MRQA_tokens(concat_context, nlp)
-
+        text_to_concat_tokens, _, _, _ = text_to_MRQA_tokens(text_to_concat, nlp)
         de2 = {'id': 'lor_ip',
             'context': text_to_concat,
-            'context_tokens': concat_context_tokens,
+            'context_tokens': text_to_concat_tokens,
             'qas': qas}
+
         qas, concat_context_tokens, concat_context, id = get_combined_de(de2, row)
 
     else:

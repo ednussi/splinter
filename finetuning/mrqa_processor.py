@@ -56,6 +56,8 @@ class MRQAExample:
                 continue
             next_token_start_position = context_tokens[i + 1][1]
             chars_to_next_token = next_token_start_position - len(char_to_word_offset)
+            if not chars_to_next_token >= 0:
+                import pdb; pdb.set_trace()
             assert chars_to_next_token >= 0
             if chars_to_next_token > 0:
                 char_to_word_offset.extend([i] * chars_to_next_token)
