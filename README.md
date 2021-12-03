@@ -18,7 +18,7 @@ python run_mrqa.py --model_type=roberta-base --model_name_or_path=roberta-base -
 sbatch --gres=gpu:rtx2080:1 sh_runs/run_baseline.sh
 
 ### Run Remote on GPU (SRUN)
-python run_mrqa.py --model_type=roberta-base --model_name_or_path=roberta-base --qass_head=False --tokenizer_name=roberta-base --output_dir=results --train_file=squad/mosaic_unite_npairs-4/squad-train-seed-42-num-examples-16.jsonl --predict_file="squad/dev.jsonl" --do_train --do_eval --cache_dir=.cache --max_seq_length=384 --doc_stride=128 --threads=4 --save_steps=50000 --per_gpu_train_batch_size=12 --per_gpu_eval_batch_size=16 --learning_rate=3e-5 --max_answer_length=10 --warmup_ratio=0.1 --min_steps=1 --num_train_epochs=1 --seed=42 --use_cache=False --evaluate_every_epoch=False --overwrite_output_dir
+python run_mrqa.py --model_type=roberta-base --model_name_or_path=roberta-base --qass_head=False --tokenizer_name=roberta-base --output_dir=results/single_run_test --train_file=squad/mosaic_unite_npairs-4/squad-train-seed-42-num-examples-16.jsonl --predict_file="squad/dev.jsonl" --do_train --do_eval --cache_dir=.cache --max_seq_length=384 --doc_stride=128 --threads=4 --save_steps=50000 --per_gpu_train_batch_size=12 --per_gpu_eval_batch_size=16 --learning_rate=3e-5 --max_answer_length=10 --warmup_ratio=0.1 --min_steps=1 --num_train_epochs=1 --seed=42 --use_cache=False --evaluate_every_epoch=False --overwrite_output_dir --aug lorem-psum
 
 
 ## Work
@@ -64,8 +64,11 @@ pip install -r requirements.txt
 
 ### Donwload Original Paper Data
 ```angular2html
+mkdir mrqa_data
+cd mrqa_data
 curl -L https://www.dropbox.com/sh/pfg8j6yfpjltwdx/AAC8Oky0w8ZS-S3S5zSSAuQma?dl=1 > mrqa-few-shot.zip
 unzip mrqa-few-shot.zip
+cd ..
 ```
 
 ### Run & Verify correctness so far
