@@ -445,13 +445,14 @@ def concat_single_example(row, text_to_concat, before=True):
     qas = row['qas']
     id = row['id']
     if before:
-        concat_context_tokens, _, _, _ = text_to_MRQA_tokens(text_to_concat, nlp)
+        concat_context = f'{text_to_concat} {context}'
+        concat_context_tokens, _, _, _ = text_to_MRQA_tokens(concat_context, nlp)
 
-        de2 = {'id': '',
+        de2 = {'id': 'lor_ip',
             'context': text_to_concat,
             'context_tokens': concat_context_tokens,
             'qas': qas}
-        qas, concat_context_tokens, concat_context, id = get_combined_de(row, de2)
+        qas, concat_context_tokens, concat_context, id = get_combined_de(de2, row)
 
     else:
         concat_context = f'{context} {text_to_concat}'
@@ -467,11 +468,12 @@ def concat_text(df, text_to_concat):
     concat_text_df = pd.DataFrame()
     for i in tqdm(range(0, len(df)), desc='Creating Shuffle Augs'):
         row_copy = pd.Series(deepcopy(df.iloc[i].to_dict()))
-        # append fix text
-        text_to_concat = 'HEY ' * 20
         concat_before = bool(round(np.random.rand())) #randomly roll where to concat text
-        print(concat_before)
+
         single_qas = concat_single_example(row_copy, text_to_concat, before=concat_before)
+        # print(concat_before)
+        # print_row_example(single_qas)
+        # pdb.set_trace()
         concat_text_df = concat_text_df.append(single_qas, ignore_index=True)
     return concat_text_df
 
@@ -572,7 +574,7 @@ def context_shuffle_aug(input_data):
     random_sent_order_df = shuffle_context(split_df)
     return random_sent_order_df
 
-def concat_random_chars(input_data):
+def concat_lorem_ipsum(input_data):
     LOREM_IPSUM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
     text_to_concat = LOREM_IPSUM
     return mosaic_concat_text(input_data, text_to_concat)

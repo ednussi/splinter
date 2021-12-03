@@ -1,7 +1,7 @@
 """ Adapted from HuggingFace code for SQuAD """
 
 from tqdm import tqdm
-from mosaic_augment_utils import mosaic_npairs_single_qac_aug, context_shuffle_aug, concat_random_chars, concat_coherent_text
+from mosaic_augment_utils import mosaic_npairs_single_qac_aug, context_shuffle_aug, concat_lorem_ipsum, concat_coherent_text
 import os
 import json
 
@@ -105,7 +105,9 @@ class MRQAProcessor:
                                             start_position_character=start_position_character, answers=answers))
         return examples
 
-
+    #####################################################################################
+    ##################################### ERAN-AUG ######################################
+    #####################################################################################
     def augment_input_data(self, input_data, aug_type, single_qac=False):
         if aug_type.startswith('mosaic'):
             _, pairs, final_single_qac_triplets = aug_type.split('-')
@@ -114,8 +116,8 @@ class MRQAProcessor:
         elif aug_type.startswith('context-shuffle'):
             aug_df = context_shuffle_aug(input_data)
 
-        elif aug_type.startswith('concat-random-chars'):
-            aug_df = concat_random_chars(input_data)
+        elif aug_type.startswith('concat-lorem-ipsum'):
+            aug_df = concat_lorem_ipsum(input_data)
 
         elif aug_type.startswith('concat-coherent-text'):
             aug_df = concat_coherent_text(input_data)
