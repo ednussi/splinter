@@ -70,27 +70,37 @@ def get_words_start_pos_list_spacy(text, tokenizer):
     # get_words_start_pos_list_spacy(combined_context, spacy_english_tokenizer)
 
 def get_combined_de(de1, de2):
+    """
+
+    :param de1:
+    :param de2:
+    :return: concat context tokens and context in order (de1+de2) and adjust answer's context and context_tokens char_spans
+    """
+
     combined_context = de1['context'] + ' ' + de2['context']
     row2_updated_context_tokens = [[x[0], x[1] + len(de1['context']) + 1] for x in de2['context_tokens']]
     context_tokens = de1['context_tokens'] + row2_updated_context_tokens
     combined_id = de1['id'] + '_' + de2['id']
-    row2_updated_qas = de2['qas'][0]
-    for det_ans_i, det_ans in enumerate(row2_updated_qas['detected_answers']):
-        begin_c = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][0]
-        end_c = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][1]
-        old_char_span = de2['context'][begin_c:end_c+1]
+    if de2['qas'] == []: #2nd example has no qas
+        combined_qas = [de1['qas'][0]]
+    else:
+        row2_updated_qas = de2['qas'][0] # nothing []
+        for det_ans_i, det_ans in enumerate(row2_updated_qas['detected_answers']):
+            begin_c = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][0]
+            end_c = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][1]
+            old_char_span = de2['context'][begin_c:end_c]
 
-        row1_context_length = len(de1['context'])
-        char_span_length = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][1] - row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][1]
-        row2_updated_qas['detected_answers'][det_ans_i]['char_spans'] = [
-            [x[0] + row1_context_length + 1, x[1] + row1_context_length + 1] for x in
-            row2_updated_qas['detected_answers'][det_ans_i]['char_spans']]
-        row2_updated_qas['detected_answers'][det_ans_i]['token_spans'] = [
-            [x[0] + len(de1['context_tokens']), x[1] + len(de1['context_tokens'])] for x in
-            row2_updated_qas['detected_answers'][det_ans_i]['token_spans']]
+            row1_context_length = len(de1['context'])
+            char_span_length = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][1] - row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][1]
+            row2_updated_qas['detected_answers'][det_ans_i]['char_spans'] = [
+                [x[0] + row1_context_length + 1, x[1] + row1_context_length + 1] for x in
+                row2_updated_qas['detected_answers'][det_ans_i]['char_spans']]
+            row2_updated_qas['detected_answers'][det_ans_i]['token_spans'] = [
+                [x[0] + len(de1['context_tokens']), x[1] + len(de1['context_tokens'])] for x in
+                row2_updated_qas['detected_answers'][det_ans_i]['token_spans']]
 
-        begin_c = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][0]
-        end_c = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][1]
+            begin_c = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][0]
+            end_c = row2_updated_qas['detected_answers'][det_ans_i]['char_spans'][0][1]
 
         DEBUG_MRQA = False
         if DEBUG_MRQA:
@@ -98,12 +108,16 @@ def get_combined_de(de1, de2):
                 print('Problems:\n')
                 time.sleep(1)
                 print('new_char_span:', combined_context[begin_c:end_c+1])
-                print('Answer in dataexample:', de2['qas'][0]['answers'][0])
+                print('Answer in dataexample:', de2['qas'][0]['answers'][0].lower())
                 print('old_char_span:', old_char_span)
                 pdb.set_trace()
                 print('next..')
 
-    combined_qas = [de1['qas'][0], row2_updated_qas]
+        if de1['qas'] == []: #in case first example doesn't have a qas
+            combined_qas = [row2_updated_qas]
+        else:
+            combined_qas = [de1['qas'][0], row2_updated_qas] #in case both examples had qas
+
     return combined_qas, context_tokens, combined_context, combined_id
 
 def qas_pairs_unite(df):
@@ -311,10 +325,28 @@ def shuffle_single_example(row, nlp):
     # for token in doc:
     #     print(token.text, token.pos_, token.dep_)
     sentences = [sent.text.strip() for sent in doc.sents]
+    orig_sent_breakdown = [sent.text.strip() for sent in doc.sents]
     sentences_length = [len(sent) for sent in sentences]
     # such that context[index] is the actual first character of sentance
     sentences_begin_inds = np.array([0] + list(np.cumsum(sentences_length[:-1]) + np.array(range(1, len(sentences_length)))))
 
+    # If answer spans over multiple sentances, combine them
+    for row_qas in row['qas']:
+        for det_answer in row_qas['detected_answers']:
+            # Get Answer
+            answer_start_ind = int(det_answer['char_spans'][0][0])
+            answer_len = int(det_answer['char_spans'][0][1]) - answer_start_ind
+            answer_end_ind = answer_start_ind + answer_len
+            # find sentences ind answer is contained in
+            answer_start_sent_ind =  sum(answer_start_ind >= sentences_begin_inds) - 1
+            answer_end_sent_ind = sum(answer_end_ind >= sentences_begin_inds) - 1
+            # combines these sentences
+            if answer_start_sent_ind != answer_end_sent_ind:
+                sentences = sentences[:answer_start_sent_ind] + [' '.join(sentences[answer_start_sent_ind:answer_end_sent_ind+1])] + sentences[answer_end_sent_ind+1:]
+                sentences_length = [len(sent) for sent in sentences]
+                # such that context[index] is the actual first character of sentance
+                sentences_begin_inds = np.array(
+                    [0] + list(np.cumsum(sentences_length[:-1]) + np.array(range(1, len(sentences_length)))))
     # Shuffle Context and Context Tokens
     new_sent_order_inds = np.random.permutation(len(sentences))
     shuffled_sentences = [sentences[sent_order] for sent_order in new_sent_order_inds]
@@ -441,36 +473,51 @@ def shuffle_context(df, seed=None):
 
 def concat_single_example(row, text_to_concat, before=True):
     nlp = get_nlp()
-    context = row['context']
-    qas = row['qas']
-    id = row['id']
+
+    text_to_concat_tokens, _, _, _ = text_to_MRQA_tokens(text_to_concat, nlp)
+    de2 = {'id': 'lor_ip',
+           'context': text_to_concat,
+           'context_tokens': text_to_concat_tokens,
+           'qas': []}
+    # get_combined_de does changes to the original struct passed
+    row_copy = pd.Series(deepcopy(row.to_dict()))
+    de2_copy = pd.Series(deepcopy(de2))
     if before:
-        text_to_concat_tokens, _, _, _ = text_to_MRQA_tokens(text_to_concat, nlp)
-        de2 = {'id': 'lor_ip',
-            'context': text_to_concat,
-            'context_tokens': text_to_concat_tokens,
-            'qas': qas}
-
-        qas, concat_context_tokens, concat_context, id = get_combined_de(de2, row)
-
+        de2['id'] += '_b'
+        qas, concat_context_tokens, concat_context, id = get_combined_de(de2, row_copy)
     else:
-        concat_context = f'{context} {text_to_concat}'
-        concat_context_tokens, _, _, _ = text_to_MRQA_tokens(concat_context, nlp)
+        de2['id'] += '_a'
+        qas, concat_context_tokens, concat_context, id = get_combined_de(row, de2_copy)
 
     return {'id': id,
             'context': concat_context,
             'context_tokens': concat_context_tokens,
             'qas': qas}
 
-def concat_text(df, texts_to_concat, both):
+def concat_text(df, texts_to_concat, both, max_seq_length):
     # set numpy seed here to get perfect results every time
     concat_text_df = pd.DataFrame()
     for i in tqdm(range(0, len(df)), desc='Creating Concat Augs'):
-        text_to_concat = texts_to_concat[i]
         row_copy = pd.Series(deepcopy(df.iloc[i].to_dict()))
+
+        # When combining need to make sure the signal isn't lost as max_seq_length cuts tokens
+        # need to shorten the text_to_concat to match the max_seq_length
+        # such that the answer and signal from orig text won't disappear
+        text_to_concat = texts_to_concat[i]
+        max_other_tokens = max_seq_length - len(row_copy['context_tokens'])
+        max_other_words = round(max_other_tokens * 0.75) # using a fix 1 word ~= 4 tokens approximated ratio
+        text_to_concat = " ".join(text_to_concat.split()[:max_other_words])
+        if not text_to_concat.endswith('.'):
+            text_to_concat += '.'
+
         if both:
             single_qas_before = concat_single_example(row_copy, text_to_concat, before=True)
             single_qas_after = concat_single_example(row_copy, text_to_concat, before=False)
+            # print_row_example(single_qas_before)
+            # pdb.set_trace()
+            # pdb.set_trace()
+            # print_row_example(single_qas_after)
+            # pdb.set_trace()
             concat_text_df = concat_text_df.append(single_qas_before, ignore_index=True)
             concat_text_df = concat_text_df.append(single_qas_after, ignore_index=True)
         else:
@@ -553,6 +600,13 @@ def print_row_example(row):
         q = qas['question']
         print(f"Question: {q}")
         print(f"Answer: {ans}")
+        for det_answer in qas['detected_answers']:
+            # Get Answer
+            answer_start_ind = int(det_answer['char_spans'][0][0])
+            answer_len = int(det_answer['char_spans'][0][1]) - answer_start_ind
+            answer_end_ind = answer_start_ind + answer_len
+            ans_from_char_spans = row['context'][answer_start_ind:answer_end_ind+1]
+        print(f"Answer from char_spans: {ans_from_char_spans}")
     print('\n'+"="*15 + 'Context' + "="*15)
     print(row['context'])
     # print('\n'+"="*15 + 'Context Tokens' + "="*15)
@@ -577,12 +631,38 @@ def context_shuffle_aug(input_data):
     random_sent_order_df = shuffle_context(split_df)
     return random_sent_order_df
 
-def concat_lorem_ipsum(input_data, both=False):
+def concat_lorem_ipsum(input_data, both=False, max_seq_length=328):
     LOREM_IPSUM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-    texts_to_concat = [LOREM_IPSUM] * len(input_data)
-    return mosaic_concat_text(input_data, texts_to_concat, both)
+    df = input_data_to_df(input_data)
+    split_df = split_qas_to_single_qac_triplets(df)
+    texts_to_concat = [LOREM_IPSUM] * len(split_df)
+    return concat_text(split_df, texts_to_concat, both, max_seq_length)
 
-def concat_coherent_text(input_data):
+def concat_coherent_text(input_data, max_seq_length):
+
+    df = input_data_to_df(input_data)
+    split_df = split_qas_to_single_qac_triplets(df)
+
+    # Get data from a different MRQA data for coherent text
+    datasets = ['bioasq', 'hotpotqa', 'naturalquestions', 'newsqa', 'searchqa', 'textbookqa', 'triviaqa']
+    # pick a non squad dataset at random
+    dataset = datasets[np.random.randint(0, len(datasets)-1)]
+    dataset_filepath =f'mrqa_data/{dataset}/{dataset}-train-seed-42-num-examples-256.jsonl'
+    with open(dataset_filepath, "r", encoding="utf-8") as reader:
+        print(reader.readline())
+        dataset_input_data = [json.loads(line) for line in reader]
+    df = input_data_to_df(dataset_input_data)
+    texts_to_concat = []
+    for i in range(len(split_df)):
+        row = df.sample()
+        # pdb.set_trace()
+        text_to_concat = row['context'].values[0]
+        text_to_concat = " ".join(text_to_concat.split()) #remove double spaces and multiple \n
+        texts_to_concat.append(text_to_concat)
+
+    return concat_text(split_df, texts_to_concat, both=True, max_seq_length=max_seq_length)
+
+def concat_single_coherent_text(input_data):
 
     # Get data from a different MRQA data for coherent text
     datasets = ['bioasq', 'hotpotqa', 'naturalquestions', 'newsqa', 'searchqa', 'textbookqa', 'triviaqa']
@@ -597,13 +677,8 @@ def concat_coherent_text(input_data):
     # pdb.set_trace()
     text_to_concat = row['context'].values[0]
     text_to_concat = " ".join(text_to_concat.split()) #remove double spaces and multiple \n
-    return mosaic_concat_text(input_data, text_to_concat, both=True)
-
-def mosaic_concat_text(input_data, text_to_concat, both):
-    df = input_data_to_df(input_data)
-    split_df = split_qas_to_single_qac_triplets(df)
-    concat_df = concat_text(split_df, text_to_concat, both)
-    return concat_df
+    texts_to_concat = [text_to_concat] * len(input_data)
+    return concat_text(input_data, texts_to_concat, both=True)
 
 if __name__ == '__main__':
     # train_file_name = f'squad/moasic_unite/squad-train-seed-42-num-examples-16.jsonl'

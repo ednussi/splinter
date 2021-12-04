@@ -108,7 +108,7 @@ class MRQAProcessor:
     #####################################################################################
     ##################################### ERAN-AUG ######################################
     #####################################################################################
-    def augment_input_data(self, input_data, aug_type, single_qac=False):
+    def augment_input_data(self, input_data, aug_type, single_qac=False, max_seq_length=328):
         if aug_type.startswith('mosaic'):
             _, pairs, final_single_qac_triplets = aug_type.split('-')
             aug_df = mosaic_npairs_single_qac_aug(input_data, pairs=pairs, final_single_qac_triplets=single_qac)
@@ -117,13 +117,13 @@ class MRQAProcessor:
             aug_df = context_shuffle_aug(input_data)
 
         elif aug_type.startswith('lorem-ipsum'):
-            aug_df = concat_lorem_ipsum(input_data)
+            aug_df = concat_lorem_ipsum(input_data, max_seq_length)
 
         elif aug_type.startswith('lorem-ipsum-double'):
-            aug_df = concat_lorem_ipsum(input_data, both=True)
+            aug_df = concat_lorem_ipsum(input_data, both=True, max_seq_length=max_seq_length)
 
         elif aug_type.startswith('concat-coherent-text'):
-            aug_df = concat_coherent_text(input_data)
+            aug_df = concat_coherent_text(input_data, max_seq_length)
 
         else:
             import pdb; pdb.set_trace()
@@ -136,7 +136,7 @@ class MRQAProcessor:
         return examples
 
 
-    def create_examples(self, input_data, set_type, aug, single_qac=False):
+    def create_examples(self, input_data, set_type, aug, single_qac=False, max_seq_length=328):
         """
         :param input_data: list of the jsonl MRQA formatted examples
         :param set_type: string "train" or else
@@ -147,7 +147,7 @@ class MRQAProcessor:
         examples = []
 
         if aug and is_training:
-            return self.augment_input_data(input_data, aug, single_qac)
+            return self.augment_input_data(input_data, aug, single_qac, max_seq_length)
 
         for entry in tqdm(input_data):
             context = entry["context"]
@@ -174,7 +174,7 @@ class MRQAProcessor:
                                             start_position_character=start_position_character, answers=answers))
         return examples
 
-    def get_train_examples(self, data_dir, filename=None, aug='', single_qac=False):
+    def get_train_examples(self, data_dir, filename=None, aug='', single_qac=False, max_seq_length=328):
         """
         Returns the training examples from the data directory.
 
@@ -195,9 +195,9 @@ class MRQAProcessor:
         ) as reader:
             print(reader.readline())
             input_data = [json.loads(line) for line in reader]
-        return self.create_examples(input_data, "train", aug, single_qac)
+        return self.create_examples(input_data, "train", aug, single_qac, max_seq_length)
 
-    def get_dev_examples(self, data_dir, filename=None):
+    def get_dev_examples(self, data_dir, filename=None, max_seq_length=328):
         """
         Returns the evaluation example from the data directory.
 
@@ -220,4 +220,4 @@ class MRQAProcessor:
 
         # No aug neede for test set
         aug = ''
-        return self.create_examples(input_data, "dev", aug)
+        return self.create_examples(input_data, "dev", aug, max_seq_length)
