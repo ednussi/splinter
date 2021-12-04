@@ -594,9 +594,10 @@ def concat_coherent_text(input_data):
         dataset_input_data = [json.loads(line) for line in reader]
     df = input_data_to_df(dataset_input_data)
     row = df.sample()
-    text_to_concat = row['context']
-    print(text_to_concat)
-    return mosaic_concat_text(input_data, text_to_concat)
+    # pdb.set_trace()
+    text_to_concat = row['context'].values[0]
+    text_to_concat = " ".join(text_to_concat.split()) #remove double spaces and multiple \n
+    return mosaic_concat_text(input_data, text_to_concat, both=True)
 
 def mosaic_concat_text(input_data, text_to_concat, both):
     df = input_data_to_df(input_data)
