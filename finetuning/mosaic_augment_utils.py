@@ -462,21 +462,25 @@ def concat_single_example(row, text_to_concat, before=True):
             'context_tokens': concat_context_tokens,
             'qas': qas}
 
-def concat_text(df, text_to_concat):
+def concat_text(df, texts_to_concat, both):
     # set numpy seed here to get perfect results every time
     concat_text_df = pd.DataFrame()
-    for i in tqdm(range(0, len(df)), desc='Creating Shuffle Augs'):
+    for i in tqdm(range(0, len(df)), desc='Creating Concat Augs'):
+        text_to_concat = texts_to_concat[i]
         row_copy = pd.Series(deepcopy(df.iloc[i].to_dict()))
-        concat_before = bool(round(np.random.rand())) #randomly roll where to concat text
-
-        single_qas = concat_single_example(row_copy, text_to_concat, before=concat_before)
-        # print(concat_before)
-        # print_row_example(single_qas)
-        # pdb.set_trace()
-        concat_text_df = concat_text_df.append(single_qas, ignore_index=True)
+        if both:
+            single_qas_before = concat_single_example(row_copy, text_to_concat, before=True)
+            single_qas_after = concat_single_example(row_copy, text_to_concat, before=False)
+            concat_text_df = concat_text_df.append(single_qas_before, ignore_index=True)
+            concat_text_df = concat_text_df.append(single_qas_after, ignore_index=True)
+        else:
+            concat_before = bool(round(np.random.rand())) #randomly roll where to concat text
+            single_qas = concat_single_example(row_copy, text_to_concat, before=concat_before)
+            # print(concat_before)
+            # print_row_example(single_qas)
+            # pdb.set_trace()
+            concat_text_df = concat_text_df.append(single_qas, ignore_index=True)
     return concat_text_df
-
-
 
 def qas_npairs_unite(df, pairs, seed=None):
     # Divide and runs in clique - aggrigate in end
@@ -573,19 +577,31 @@ def context_shuffle_aug(input_data):
     random_sent_order_df = shuffle_context(split_df)
     return random_sent_order_df
 
-def concat_lorem_ipsum(input_data):
+def concat_lorem_ipsum(input_data, both=False):
     LOREM_IPSUM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-    text_to_concat = LOREM_IPSUM
-    return mosaic_concat_text(input_data, text_to_concat)
+    texts_to_concat = [LOREM_IPSUM] * len(input_data)
+    return mosaic_concat_text(input_data, texts_to_concat, both)
 
 def concat_coherent_text(input_data):
-    text_to_concat = ''
+
+    # Get data from a different MRQA data for coherent text
+    datasets = ['bioasq', 'hotpotqa', 'naturalquestions', 'newsqa', 'searchqa', 'textbookqa', 'triviaqa']
+    # pick a non squad dataset at random
+    dataset = datasets[np.random.randint(0, len(datasets)-1)]
+    dataset_filepath =f'mrqa_data/{dataset}/{dataset}-train-seed-42-num-examples-256.jsonl'
+    with open(dataset_filepath, "r", encoding="utf-8") as reader:
+        print(reader.readline())
+        dataset_input_data = [json.loads(line) for line in reader]
+    df = input_data_to_df(dataset_input_data)
+    row = df.sample()
+    text_to_concat = row['context']
+    print(text_to_concat)
     return mosaic_concat_text(input_data, text_to_concat)
 
-def mosaic_concat_text(input_data, text_to_concat):
+def mosaic_concat_text(input_data, text_to_concat, both):
     df = input_data_to_df(input_data)
     split_df = split_qas_to_single_qac_triplets(df)
-    concat_df = concat_text(split_df, text_to_concat)
+    concat_df = concat_text(split_df, text_to_concat, both)
     return concat_df
 
 if __name__ == '__main__':

@@ -119,6 +119,9 @@ class MRQAProcessor:
         elif aug_type.startswith('lorem-ipsum'):
             aug_df = concat_lorem_ipsum(input_data)
 
+        elif aug_type.startswith('lorem-ipsum-double'):
+            aug_df = concat_lorem_ipsum(input_data, both=True)
+
         elif aug_type.startswith('concat-coherent-text'):
             aug_df = concat_coherent_text(input_data)
 
