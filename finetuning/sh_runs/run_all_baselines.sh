@@ -12,7 +12,7 @@ do
     do
       echo "Loop $i-$j"
       EXPNAME="$d-baseline"
-      TRAINFILE="$BASEPATH/mrqa_data/$d/$EXPNAME/squad-train-seed-$j-num-examples-$i.jsonl"
+      TRAINFILE="$BASEPATH/mrqa_data/$d/squad-train-seed-$j-num-examples-$i.jsonl"
       TESTFILE="$BASEPATH/mrqa_data/$d/dev.jsonl"
       OUTPUTDIR="$BASEPATH/results/$EXPNAME/output-$i-$j"
       mkdir -p -- $OUTPUTDIR
