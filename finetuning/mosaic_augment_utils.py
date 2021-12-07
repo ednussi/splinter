@@ -167,10 +167,10 @@ def qas_clique_unite(df, seed=None):
                                           'qas':combined_qas2},ignore_index=True)
     return united_df
 
-
 def split_dataframe(df, chunk_size = 8):
+    chunk_size = int(chunk_size)
     chunks = list()
-    num_chunks = len(df) // chunk_size + 1
+    num_chunks = len(df) // int(chunk_size) + 1
     for i in range(num_chunks):
         chunks.append(df[i*chunk_size:(i+1)*chunk_size])
     return chunks
