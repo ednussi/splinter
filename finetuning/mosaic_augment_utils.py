@@ -80,7 +80,10 @@ def get_combined_de(de1, de2):
     combined_context = de1['context'] + ' ' + de2['context']
     row2_updated_context_tokens = [[x[0], x[1] + len(de1['context']) + 1] for x in de2['context_tokens']]
     context_tokens = de1['context_tokens'] + row2_updated_context_tokens
-    combined_id = de1['id'] + '_' + de2['id']
+    try: # not all mrqa examples have id
+        combined_id = de1['id'] + '_' + de2['id']
+    except:
+        combined_id = ''
     if de2['qas'] == []: #2nd example has no qas
         combined_qas = [de1['qas'][0]]
     else:
