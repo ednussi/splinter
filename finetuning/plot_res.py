@@ -384,7 +384,7 @@ concat_coherent_context = {'16-42': {'exact': ['6.824'], 'f1': ['9.516']}, '16-4
 if __name__ == '__main__':
     names = ['baseline', 'baseline_old','mosaic_2_False', 'mosaic_2_False_old', 'lorem_ipsum']
     dicts = [baseline, baseline_old, mosaic_2_False, mosaic_2_False_old, lorem_ipsum_double]
-    names = ['baseline', 'lorem_ipsum_double', 'concat_coherent_context' ]
-    dicts = [baseline, lorem_ipsum_double, concat_coherent_context]
+    names = ['baseline', 'lorem_ipsum_double', 'concat_coherent_context', 'mosaic_2_same-aug']
+    dicts = [baseline, lorem_ipsum_double, concat_coherent_context, mosaic_2_False]
 
     plot_f1_em_dicts(names, dicts, show_min_max=False)
