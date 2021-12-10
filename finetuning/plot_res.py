@@ -391,13 +391,13 @@ bioasq_baseline = {'16-42': {'exact': ['14.250'], 'f1': ['18.524']}, '16-43': {'
 hotpotqa_basline = {'32-42': {'exact': ['5.118'], 'f1': ['8.933']}, '32-43': {'exact': ['6.677'], 'f1': ['11.064']}, '32-44': {'exact': ['6.321'], 'f1': ['10.443']}, '64-42': {'exact': ['9.405'], 'f1': ['14.589']}, '64-43': {'exact': ['13.574'], 'f1': ['21.222']}, '64-44': {'exact': ['7.795'], 'f1': ['12.287']}, '64-45': {'exact': ['9.998'], 'f1': ['15.092']}, '64-46': {'exact': ['9.134'], 'f1': ['15.084']}, '128-42': {'exact': ['12.862'], 'f1': ['18.858']}, '128-43': {'exact': ['23.471'], 'f1': ['33.958']}, '128-44': {'exact': ['25.318'], 'f1': ['36.322']}, '128-45': {'exact': ['17.675'], 'f1': ['26.213']}, '128-46': {'exact': ['18.370'], 'f1': ['27.077']}, '256-42': {'exact': ['30.351'], 'f1': ['42.549']}, '256-43': {'exact': ['31.079'], 'f1': ['43.780']}, '256-44': {'exact': ['30.419'], 'f1': ['42.640']}, '256-45': {'exact': ['31.944'], 'f1': ['44.764']}, '256-46': {'exact': ['29.487'], 'f1': ['41.536']}}
 hotpotqa_mosaic_2_True = {'128-42': {'exact': ['29.317'], 'f1': ['41.985']}, '128-43': {'exact': ['27.775'], 'f1': ['39.199']}, '128-44': {'exact': ['29.927'], 'f1': ['42.447']}, '128-45': {'exact': ['27.826'], 'f1': ['39.469']}, '256-42': {'exact': ['38.705'], 'f1': ['53.002']}, '256-43': {'exact': ['36.485'], 'f1': ['50.085']}, '256-44': {'exact': ['36.740'], 'f1': ['50.196']}, '256-45': {'exact': ['36.858'], 'f1': ['50.663']}, '256-46': {'exact': ['33.367'], 'f1': ['46.825']}}
 
-def plot_table():
-    # Add a table at the bottom of the axes
-    the_table = plt.table(cellText=cell_text,
-                          rowLabels=rows,
-                          rowColours=colors,
-                          colLabels=columns,
-                          loc='bottom')
+# def plot_table():
+#     # Add a table at the bottom of the axes
+#     the_table = plt.table(cellText=cell_text,
+#                           rowLabels=rows,
+#                           rowColours=colors,
+#                           colLabels=columns,
+#                           loc='bottom')
 
 if __name__ == '__main__':
     names = ['baseline', 'baseline_old','mosaic_2_False', 'mosaic_2_False_old', 'lorem_ipsum']
@@ -407,8 +407,8 @@ if __name__ == '__main__':
     names = ['baseline', 'lorem_ipsum', 'lorem_ipsum_double', 'concat_coherent_context', 'mosaic_2_same-aug']
     dicts = [baseline, lorem_ipsum, lorem_ipsum_double, concat_coherent_context, mosaic_2_False]
 
-    # BIOASQ
-    names = ['bioasq_baseline', 'lorem_ipsum_double', 'concat_coherent_context', 'mosaic_2_same-aug', 'mosaic_2_dynamic-aug']
-    dicts = [bioasq_baseline, bioasq_lorem_ipsum_double, bioasq_coherent_concat, bioasq_mosaic_2_False, bioasq_mosaic_2_True]
+    # # BIOASQ
+    # names = ['bioasq_baseline', 'lorem_ipsum_double', 'concat_coherent_context', 'mosaic_2_same-aug', 'mosaic_2_dynamic-aug']
+    # dicts = [bioasq_baseline, bioasq_lorem_ipsum_double, bioasq_coherent_concat, bioasq_mosaic_2_False, bioasq_mosaic_2_True]
 
     plot_f1_em_dicts(names, dicts, show_min_max=False)
