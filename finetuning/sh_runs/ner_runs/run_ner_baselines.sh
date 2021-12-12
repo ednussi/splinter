@@ -1,7 +1,7 @@
 #!/bin/sh
 #SBATCH --time=2-0:0:0
 #SBATCH --gres=gpu:rtx2080:1
-source  /cs/labs/gabis/ednussi/v1/bin/activate
+source  /cs/labs/gabis/ednussi/ner/bin/activate
 export MODEL="roberta-base"
 export BASEPATH="/cs/labs/gabis/ednussi/splinter/finetuning"
 for d in 'conll2003' 'wnut_17' 'ncbi_disease' 'species_800' 'bc2gm_corpus'
