@@ -15,7 +15,7 @@ do
       EXPNAME="$d-$AUG"
       OUTPUTDIR="$BASEPATH/results_ner/$EXPNAME/output-$i-$j"
       mkdir -p -- $OUTPUTDIR
-      python python run_ner.py --model_name_or_path bert-base-uncased --dataset_name $d --do_train --do_eval --warmup_ratio=0.1 --overwrite_output_dir --num_train_epochs=10 --seed $j --max_train_samples $i --output_dir $OUTPUTDIR --aug $AUG
+      python run_ner.py --model_name_or_path bert-base-uncased --dataset_name $d --do_train --do_eval --warmup_ratio=0.1 --overwrite_output_dir --num_train_epochs=10 --seed $j --max_train_samples $i --output_dir $OUTPUTDIR --aug $AUG
       rm -rf "$OUTPUTDIR/pytorch_model.bin"
     done
   done
