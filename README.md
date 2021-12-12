@@ -114,3 +114,6 @@ do
 ### Results
 ![image](https://user-images.githubusercontent.com/10045688/116010500-26f25e80-a5d4-11eb-9677-34c120e52d81.png)
 [Original ticke](https://github.com/oriram/splinter/issues/1#issuecomment-823697203)
+
+# NER
+
