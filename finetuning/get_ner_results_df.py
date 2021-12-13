@@ -17,9 +17,8 @@ def init_parser():
     return parser.parse_args()
 
 def get_results_df(ner_results_path):
-    columns = ['eval_f1', 'eval_accracy', 'eval_precision', 'eval_recall', 'eval_loss']
-    rows = os.listdir(ner_results_path)
-    # df_all = pd.DataFrame(columns=columns, index=rows)
+    columns = ['exp', 'examples', 'seed', 'f1', 'accuracy', 'precision', 'recall', 'loss']
+    df_all = pd.DataFrame(columns=columns)
 
     for exp in os.listdir(ner_results_path):
         exp_path = f'{ner_results_path}/{exp}'
@@ -39,11 +38,13 @@ def get_results_df(ner_results_path):
 
                     # plot this aug
                     print(f'============ {exp} ============')
-                    res_dict[f'{num_examples}-{seed}'] = {'f1': data['eval_f1'], 'accracy': data['eval_accuracy'],
+
+                    res_dict = {'exp':exp, 'examples': num_examples, 'seed': seed, 'f1': data['eval_f1'], 'accuracy': data['eval_accuracy'],
                                                           'precision': data['eval_precision'], 'recall': data['eval_recall'],
                                                           'loss': data['eval_loss']}
-                    print(res_dict, flush=True)
-                    time.sleep(1)
+                    df_all = df_all.append(res_dict, ignore_index=True)
+
+    print(df_all)
 if __name__ == '__main__':
     # args = init_parser()
     ner_results_path = 'results_ner'
