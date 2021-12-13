@@ -18,7 +18,7 @@ def init_parser():
 def get_results_df(ner_results_path):
     columns = ['eval_f1', 'eval_accracy', 'eval_precision', 'eval_recall', 'eval_loss']
     rows = os.listdir(ner_results_path)
-    df_all = pd.DataFrame(columns=columns, index=rows)
+    # df_all = pd.DataFrame(columns=columns, index=rows)
 
     for exp in os.listdir(ner_results_path):
         exp_path = f'{ner_results_path}/{exp}'
@@ -30,19 +30,19 @@ def get_results_df(ner_results_path):
                     res_file = f'{res_folder_path}/eval_results.json'
                     with open(res_file, "r") as f:
                         data = json.load(f)
-                    df = json_normalize(data)
-                    if df_all.empty:
-                        df_all = df
-                    else:
-                        df_all = df_all.join(df)
+                    # df = json_normalize(data)
+                    # if df_all.empty:
+                    #     df_all = df
+                    # else:
+                    #     df_all = df_all.join(df)
 
-        # plot this aug
-        print(f'============ {exp} ============')
-        res_dict[f'{num_examples}-{seed}'] = {'f1': data['eval_f1'], 'accracy': data['eval_accracy'],
-                                              'precision': data['eval_precision'], 'recall': data['eval_recall'],
-                                              'loss': data['eval_loss']}
+                    # plot this aug
+                    print(f'============ {exp} ============')
+                    res_dict[f'{num_examples}-{seed}'] = {'f1': data['eval_f1'], 'accracy': data['eval_accracy'],
+                                                          'precision': data['eval_precision'], 'recall': data['eval_recall'],
+                                                          'loss': data['eval_loss']}
         print(res_dict)
 if __name__ == '__main__':
-    args = init_parser()
+    # args = init_parser()
     ner_results_path = 'results_ner'
     get_results_df(ner_results_path)
