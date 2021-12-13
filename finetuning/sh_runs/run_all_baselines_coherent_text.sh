@@ -4,7 +4,7 @@
 source  /cs/labs/gabis/ednussi/v1/bin/activate
 export MODEL="roberta-base"
 export BASEPATH="/cs/labs/gabis/ednussi/splinter/finetuning"
-for d in 'hotpotqa' 'naturalquestions' 'newsqa' 'searchqa' 'textbookqa' 'triviaqa' 'squad'
+for d in 'naturalquestions' 'newsqa' 'searchqa' 'textbookqa' 'triviaqa' 'squad'
 do
   for i in 256 128 64 32 16
   do
