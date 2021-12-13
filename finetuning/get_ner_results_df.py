@@ -45,8 +45,7 @@ def get_results_df(ner_results_path):
                     df_all = df_all.append(res_dict, ignore_index=True)
 
     print(df_all)
-    parsed = json.loads(df_all)
-    json.dumps(parsed, indent=2)
+    print(df_all.to_dict())
 if __name__ == '__main__':
     # args = init_parser()
     ner_results_path = 'results_ner'
