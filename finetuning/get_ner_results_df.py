@@ -38,10 +38,10 @@ def get_results_df(ner_results_path):
 
                     # plot this aug
                     print(f'============ {exp} ============')
-                    res_dict[f'{num_examples}-{seed}'] = {'f1': data['eval_f1'], 'accracy': data['eval_accracy'],
+                    res_dict[f'{num_examples}-{seed}'] = {'f1': data['eval_f1'], 'accracy': data['eval_accuracy'],
                                                           'precision': data['eval_precision'], 'recall': data['eval_recall'],
                                                           'loss': data['eval_loss']}
-        print(res_dict)
+                    print(res_dict)
 if __name__ == '__main__':
     # args = init_parser()
     ner_results_path = 'results_ner'
