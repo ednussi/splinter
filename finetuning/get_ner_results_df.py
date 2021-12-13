@@ -5,6 +5,7 @@ import os
 import json
 from pandas.io.json import json_normalize
 import pandas as pd
+import time
 def init_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -41,7 +42,8 @@ def get_results_df(ner_results_path):
                     res_dict[f'{num_examples}-{seed}'] = {'f1': data['eval_f1'], 'accracy': data['eval_accuracy'],
                                                           'precision': data['eval_precision'], 'recall': data['eval_recall'],
                                                           'loss': data['eval_loss']}
-                    print(res_dict)
+                    print(res_dict, flush=True)
+                    time.sleep(1)
 if __name__ == '__main__':
     # args = init_parser()
     ner_results_path = 'results_ner'
