@@ -23,7 +23,7 @@ def get_results_df(ner_results_path):
     for exp in os.listdir(ner_results_path):
         exp_path = f'{ner_results_path}/{exp}'
         res_dict = {}
-        for num_examples in tqdm([16, 32, 64, 128, 256, 512, 1024, 2048], desc='Examples'):
+        for num_examples in tqdm([16, 32, 64, 128, 256, 512, 1024], desc='Examples'):
             for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
                 res_folder_path = f'{exp_path}/output-{num_examples}-{seed}'
                 if 'eval_results.json' in os.listdir(res_folder_path):
@@ -49,4 +49,5 @@ def get_results_df(ner_results_path):
 if __name__ == '__main__':
     # args = init_parser()
     ner_results_path = 'results_ner'
+    ner_results_path = 'ner_res'
     get_results_df(ner_results_path)

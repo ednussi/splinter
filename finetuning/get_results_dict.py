@@ -2,6 +2,7 @@ import argparse
 from tqdm import tqdm
 import re
 import os
+import json
 
 def init_parser():
     parser = argparse.ArgumentParser()
@@ -23,14 +24,22 @@ def get_f1_em_dict(exp_paths):
             for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
 
                 res_folder_path = f'{exp}/output-{num_examples}-{seed}'
-                res_file = f'{base_path}/{res_folder_path}/eval_results.txt'
-                if os.path.exists(res_file):
+                if 'eval_results.txt' in os.listdir(f'{base_path}/{res_folder_path}'):
+
+                    res_file = f'{base_path}/{res_folder_path}/eval_results.txt'
                     with open(res_file, "r") as f:
                         lines = f.readlines()
 
                     f1 = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_f1 = ')][0])
                     em = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_exact = ')][0])
                     res_dict[f'{num_examples}-{seed}'] = {'exact':em, 'f1':f1}
+
+                elif 'eval_results.json' in os.listdir(f'{base_path}/{res_folder_path}'):
+                    res_file = f'{base_path}/{res_folder_path}/eval_results.json'
+                    with open(res_file, "r") as f:
+                        data = json.load(f)
+
+                        res_dict[f'{num_examples}-{seed}'] = {'exact': em, 'f1': f1}
 
         # plot this aug
         print(f'============ {exp} ============')

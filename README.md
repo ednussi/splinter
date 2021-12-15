@@ -23,7 +23,7 @@ python run_mrqa.py --model_type=roberta-base --model_name_or_path=roberta-base -
 
 ## Work
 
-1) `ssh ednussi%phoenix-gw@gw.cs.huji.ac.il`
+1) `ssh -J ednussi@bava.cs.huji.ac.il ednussi@phoenix-gw.cs.huji.ac.il`
 
 2) `srun --pty --gres=gpu:rtx2080 bash`
 
@@ -116,4 +116,4 @@ do
 [Original ticke](https://github.com/oriram/splinter/issues/1#issuecomment-823697203)
 
 # NER
-
+python run_ner.py --model_name_or_path bert-base-uncased --dataset_name wnut_17 --do_train --do_eval --warmup_ratio=0.1 --overwrite_output_dir --num_train_epochs=10 --seed 42 --max_train_samples 16 --output_dir test_res --aug mosaic-crop

@@ -443,6 +443,24 @@ def main():
                             'ner_tags': combined_ner_tags}
             return pd.Series(combined_row)
 
+        def remove_nonsignal_before_after(row):
+            # remove 0 tokens words from before/after
+            ner_indices = row['ner_tags'].nonzero()[0]
+            if ner_indices.size > 0:  # there is some signal
+                first_signal_index = ner_indices[0]
+                num_tokens_remove_start = 0
+                if first_signal_index >= 1:  # not first token, otherwise nothing to cut
+                    num_tokens_remove_start = np.random.randint(first_signal_index) + 1
+
+                last_signal_index = ner_indices[-1]
+                num_tokens_remove_end = len(row['ner_tags'])
+                if last_signal_index < len(row['ner_tags']):  # not first token, otherwise nothing to cut
+                    num_tokens_remove_end = np.random.randint(last_signal_index, len(row['ner_tags']))
+                # update row by removing non signal at beginning and end
+                row['tokens'] = row['tokens'][num_tokens_remove_start:num_tokens_remove_end]
+                row['ner_tags'] = row['ner_tags'][num_tokens_remove_start:num_tokens_remove_end]
+            return row
+
         if aug_args.aug:
             if aug_args.aug == 'lorem-ipsum':
                 for i in tqdm(range(0, len(df)), desc='Creating Augs'):
@@ -480,6 +498,7 @@ def main():
                     row2['tokens'] = np.append(row2['tokens'], token_to_add)
                     row2['ner_tags'] = np.append(row2['ner_tags'], ner_tags_to_add)
                 df = ddf
+                print('pdb')
 
             elif aug_args.aug == 'mosaic':
                 combined_df = pd.DataFrame()
@@ -497,6 +516,28 @@ def main():
                 df = combined_df
                 # import pdb; pdb.set_trace()
                 # print('mosaic')
+            elif aug_args.aug == 'mosaic-crop':
+                combined_df = pd.DataFrame()
+                for i in tqdm(range(0, len(df), 2), desc='Creating Augs'):
+                    row = df.iloc[i]
+                    row2 = df.iloc[i+1]
+
+                    # remove 0 tokens words from before/after
+                    row = remove_nonsignal_before_after(row)
+                    row2 = remove_nonsignal_before_after(row2)
+
+                    # combine 1-2
+                    combined_1_2 = combine_rows(row, row2)
+                    # combine 2-1
+                    combined_2_1 = combine_rows(row2, row)
+                    # join into the new df
+                    combined_df = combined_df.append(combined_1_2, ignore_index=True)
+                    combined_df = combined_df.append(combined_2_1, ignore_index=True)
+
+                df = combined_df
+                # import pdb; pdb.set_trace()
+                # print('mosaic')
+
 
         train_dataset = datasets.arrow_dataset.Dataset.from_pandas(df)
 
