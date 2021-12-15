@@ -178,7 +178,7 @@ def train(args, train_dataset, model, tokenizer):
     csv_columns = ['global_step','lr', 'loss', 'loss_step','step_times','num_step']
     f = open(f"{args.output_dir}/log_lr_loss.csv", "w")
     f.write(f',{",".join(csv_columns)}\n')
-
+    
     for i, _ in enumerate(train_iterator):
 
         # If dynamic augs - Recrate new augs every epoch

@@ -619,9 +619,68 @@ def print_df_example(df, index=0):
     row = df.iloc[index]
     print_row_example(row)
 
-def mosaic_npairs_single_qac_aug(input_data, pairs=2, final_single_qac_triplets=True, seed=None):
+
+def crop_single_qas(row):
+    nlp = get_nlp()
+
+    # Find where the context is
+    context = row['context']
+    context_tokens = row['context_tokens']
+    doc = nlp(context)
+    # for token in doc:
+    #     print(token.text, token.pos_, token.dep_)
+    sentences = [sent.text.strip() for sent in doc.sents]
+    orig_sent_breakdown = [sent.text.strip() for sent in doc.sents]
+    sentences_length = [len(sent) for sent in sentences]
+    # such that context[index] is the actual first character of sentance
+    sentences_begin_inds = np.array([0] + list(np.cumsum(sentences_length[:-1]) + np.array(range(1, len(sentences_length)))))
+
+    # If answer spans over multiple sentances, combine them
+    for row_qas in row['qas']:
+        for det_answer in row_qas['detected_answers']:
+            # Get Answer
+            answer_start_ind = int(det_answer['char_spans'][0][0])
+            answer_len = int(det_answer['char_spans'][0][1]) - answer_start_ind
+            answer_end_ind = answer_start_ind + answer_len
+            # find sentences ind answer is contained in
+            answer_start_sent_ind =  sum(answer_start_ind >= sentences_begin_inds) - 1
+            answer_end_sent_ind = sum(answer_end_ind >= sentences_begin_inds) - 1
+            # combines these sentences
+            if answer_start_sent_ind != answer_end_sent_ind:
+                sentences = sentences[:answer_start_sent_ind] + [' '.join(sentences[answer_start_sent_ind:answer_end_sent_ind+1])] + sentences[answer_end_sent_ind+1:]
+                sentences_length = [len(sent) for sent in sentences]
+                # such that context[index] is the actual first character of sentance
+                sentences_begin_inds = np.array(
+                    [0] + list(np.cumsum(sentences_length[:-1]) + np.array(range(1, len(sentences_length)))))
+
+    # CROP
+    print(sentences)
+    print(len(sentences))
+    print(answer_start_sent_ind)
+    import pdb; pdb.set_trace()
+
+    # Drop before
+
+    # Drop after
+
+
+
+    return row
+
+def crop_qas_df(df):
+    cropped_df = pd.DataFrame()
+    for i in tqdm(range(0, len(df)), desc='Creating Concat Augs'):
+        row = pd.Series(deepcopy(df.iloc[i].to_dict()))
+        row = crop_single_qas(row)
+        cropped_df.append(row, ignore_index=True)
+    return cropped_df
+
+
+def mosaic_npairs_single_qac_aug(input_data, pairs=2, final_single_qac_triplets=True, seed=None, crop=False):
     df = input_data_to_df(input_data)
     split_df = split_qas_to_single_qac_triplets(df)
+    if crop:
+        split_df = crop_qas_df(split_df)
     uni_df = qas_npairs_unite(split_df, pairs, seed)
     if final_single_qac_triplets:
         uni_single_qac_df = split_qas_to_single_qac_triplets(uni_df)

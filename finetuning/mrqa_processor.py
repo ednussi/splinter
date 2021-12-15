@@ -1,5 +1,6 @@
 """ Adapted from HuggingFace code for SQuAD """
 
+from typing_extensions import ParamSpecArgs
 from tqdm import tqdm
 from mosaic_augment_utils import mosaic_npairs_single_qac_aug, context_shuffle_aug, concat_lorem_ipsum, concat_coherent_text
 import os
@@ -110,8 +111,12 @@ class MRQAProcessor:
     #####################################################################################
     def augment_input_data(self, input_data, aug_type, single_qac=False, max_seq_length=328):
         if aug_type.startswith('mosaic'):
-            _, pairs, final_single_qac_triplets = aug_type.split('-')
-            aug_df = mosaic_npairs_single_qac_aug(input_data, pairs=pairs, final_single_qac_triplets=single_qac)
+            mosaic_kind, pairs, final_single_qac_triplets = aug_type.split('-')
+            if mosaic_kind == "mosaic":
+                aug_df = mosaic_npairs_single_qac_aug(input_data, pairs=pairs, final_single_qac_triplets=single_qac, crop=False)
+            if mosaic_kind == "mosaiccrop":
+                # Write crop mosaicing here
+                aug_df = mosaic_npairs_single_qac_aug(input_data, pairs=pairs, final_single_qac_triplets=single_qac, crop=True)
 
         elif aug_type.startswith('context-shuffle'):
             aug_df = context_shuffle_aug(input_data)
@@ -147,7 +152,8 @@ class MRQAProcessor:
         examples = []
 
         if aug and is_training:
-            return self.augment_input_data(input_data, aug, single_qac, max_seq_length)
+            if aug != 'baseline': # Don't do any augmentation if passed baseline
+                return self.augment_input_data(input_data, aug, single_qac, max_seq_length)
 
         for entry in tqdm(input_data):
             context = entry["context"]
