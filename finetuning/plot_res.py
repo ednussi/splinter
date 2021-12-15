@@ -422,7 +422,14 @@ def get_average_ner_res():
             df_exp_examples_mean['exp'] = exp
             df_exp_examples_mean['examples'] = examples
             averages_df = averages_df.append(df_exp_examples_mean, ignore_index=True)
+    return averages_df
 
+def get_average_across_dataests(df):
+    averages_df = pd.DataFrame()
+    for examples in df['examples'].unique():
+        examples_df = df[df['examples'] == examples]
+        df_exp_examples_mean = examples_df.mean(axis=0)
+        averages_df = averages_df.append(df_exp_examples_mean, ignore_index=True)
     return averages_df
 
 if __name__ == '__main__':
@@ -430,6 +437,24 @@ if __name__ == '__main__':
     print('averages_df')
     print(averages_df)
     averages_df = averages_df.round(3) # Average to 3rd decimal
+    averages_df['aug'] =  [x.split("-")[-1] for x in averages_df['exp']]
+    averages_df['dataset'] = ["_".join(x.split("-")[:-1]) for x in averages_df['exp']]
+
+
+    delta_df = pd.DataFrame() #how much better / wrost is mosaic to baseline
+    for dataset in averages_df['dataset'].unique():
+        for examples in averages_df['examples'].unique():
+            rel_df = averages_df[(averages_df['dataset']==dataset) &(averages_df['examples']==examples)]
+            baseline = rel_df[rel_df['aug']=='baseline']
+            mosaic = rel_df[rel_df['aug']=='mosaic']
+            delta_dict = {"dataset":dataset, 'examples': examples,
+                          'accuracy': float(mosaic['accuracy']) - float(baseline['accuracy']),
+                          'recall': float(mosaic['recall']) - float(baseline['recall']),
+                          'precision': float(mosaic['precision']) - float(baseline['precision']),
+                          'f1': float(mosaic['f1']) - float(baseline['f1'])}
+            delta_df = delta_df.append(delta_dict, ignore_index=True)
+    print(delta_df)
+    average_across_dataests_df = get_average_across_dataests(delta_df)
 
     base = np.array([0, 7 ,1 ,8, 2, 9, 3, 10, 4, 11, 5, 12, 6, 13])
     df_range = []
@@ -440,12 +465,11 @@ if __name__ == '__main__':
     df_range.append(list(base + 56))
     for i in [item for sublist in df_range for item in sublist]:
         row = averages_df.iloc[i]
-        exp_name = row['exp']
-        aug = exp_name.split("-")[-1]
-        dataset = "_".join(exp_name.split("-")[:-1])
-        latex_line = f"\\verb|{dataset}| & roberta-base & \\verb|{aug}| & {row['examples']} & {row['accuracy']} & {row['recall']} & {row['precision']} & {row['f1']}\\\\"
+        latex_line = f"\\verb|{row['dataset']}| & roberta-base & \\verb|{row['aug']}| & {row['examples']} & {row['accuracy']} & {row['recall']} & {row['precision']} & {row['f1']}\\\\"
         print(latex_line)
     import pdb; pdb.set_trace()
+
+    # Average of improve
 
     names = ['baseline', 'baseline_old','mosaic_2_False', 'mosaic_2_False_old', 'lorem_ipsum']
     dicts = [baseline, baseline_old, mosaic_2_False, mosaic_2_False_old, lorem_ipsum_double]
