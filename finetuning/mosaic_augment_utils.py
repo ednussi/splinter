@@ -653,19 +653,63 @@ def crop_single_qas(row):
                 sentences_begin_inds = np.array(
                     [0] + list(np.cumsum(sentences_length[:-1]) + np.array(range(1, len(sentences_length)))))
 
-    # CROP
-    print(sentences)
-    print(len(sentences))
-    print(answer_start_sent_ind)
-    import pdb; pdb.set_trace()
+    # CROP - Drop at random sentances, before / after signal(answer)
+    
+    # Drop after
+    end_crop_index = 0
+    if answer_start_sent_ind < len(sentences):
+        end_crop_index = np.random.randint(answer_start_sent_ind, len(sentences))
 
     # Drop before
+    start_crop_index = len(sentences)
+    if answer_start_sent_ind >= 1:
+        start_crop_index = np.random.randint(answer_start_sent_ind)
+        
+    cropped_sentences = sentences[start_crop_index:end_crop_index]
+    cropped_context = ' '.join(cropped_sentences)
+    cropped_tokens, cropped_MRQA_text_tokens_per_sentence, cropped_context_words, cropped_context_spaces = text_to_MRQA_tokens(cropped_context, nlp) #Changing
 
-    # Drop after
+    qas = []
+    for row_qas in row['qas']:
+        single_qas = {}
+        single_qas['id'] = row_qas['id']
+        single_qas['qid'] = row_qas['qid']
+        single_qas['question'] = row_qas['question']
+        single_qas['question_tokens'] = row_qas['question_tokens']
+        single_qas['answers'] = row_qas['answers']
 
+        detected_answers = []
+        for det_answer in row_qas['detected_answers']:
+            single_det_ans = {}
+            single_det_ans['text'] = det_answer['text']
+            answer_start_ind = int(det_answer['char_spans'][0][0])
+            answer_len = int(det_answer['char_spans'][0][1]) - answer_start_ind
+            answer_end_ind = answer_start_ind + answer_len
+            old_ans = context[answer_start_ind:answer_end_ind + 1]
+            old_tokens = context_tokens[int(det_answer['token_spans'][0][0]):int(det_answer['token_spans'][0][1])+1]
 
+            single_det_ans['char_spans'] = [[shuffled_answer_start_ind, shuffled_answer_end_ind]]  # Changing
 
-    return row
+            single_det_ans['token_spans'] = [[shuffled_answer_token_start_ind, shuffled_answer_token_end_ind]] #Changing
+
+            # Sanity checks - tokens spans create same answer
+            # if not [x[0] for x in cropped_tokens[shuffled_answer_token_start_ind:shuffled_answer_token_end_ind+1]] == [x[0] for x in old_tokens]:
+            #     print('WARINING: Tokens Mismatch')
+            #     print('original ans tokens', [x[0] for x in old_tokens])
+            #     print('shuffled ans tokens', [x[0] for x in shuffled_tokens[shuffled_answer_token_start_ind:shuffled_answer_token_end_ind+1]])
+            #     """
+            #     shuffled ans tokens ['The', 'lights', 'can', 'be', 'switched', 'on', 'for', '24', '-', 'hrs', '/', 'day', ',', 'or', 'a', 'range', 'of', 'step', '-', 'wise', 'light', 'regimens', 'to', 'encourage', 'the', 'birds', 'to', 'feed', 'often', 'and', 'therefore', 'grow', 'rapidly']
+            #     original ans tokens ['The', 'lights', 'can', 'be', 'switched', 'on', 'for', '24-hrs', '/', 'day', ',', 'or', 'a', 'range', 'of', 'step', '-', 'wise', 'light', 'regimens', 'to', 'encourage', 'the', 'birds', 'to', 'feed', 'often', 'and', 'therefore', 'grow', 'rapidly']
+            #     """
+
+            detected_answers.append(single_det_ans)
+        
+        single_qas['detected_answers'] = detected_answers
+        qas.append(single_qas)
+    return {'id': row['id'],
+            'context': cropped_context,
+            'context_tokens': cropped_tokens,
+            'qas': qas}
 
 def crop_qas_df(df):
     cropped_df = pd.DataFrame()
