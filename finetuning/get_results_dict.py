@@ -21,6 +21,8 @@ def get_qa_res_df():
     df_all = pd.DataFrame()
     for exp in os.listdir(results_path):
         exp_path = f'{results_path}/{exp}'
+        dataset = exp.split('-')[0]
+        aug = exp.split('-')[-1]
         for num_examples in tqdm([16, 32, 64, 128, 256, 512, 1024], desc='Examples'):
             for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
                 res_folder_path = f'{exp_path}/output-{num_examples}-{seed}'
@@ -30,17 +32,10 @@ def get_qa_res_df():
                         with open(res_file, "r") as f:
                             lines = f.readlines()
 
-                        f1 = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_f1 = ')][0])
-                        em = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_exact = ')][0])
-                        entery = {'dataset': None, 'aug': None, 'examples': num_examples, 'seed': seed, 'EM': em, 'f1': f1}
+                        f1 = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_f1 = ')][0])[0]
+                        em = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_exact = ')][0])[0]
+                        entery = {'dataset': dataset, 'aug': aug, 'examples': num_examples, 'seed': seed, 'EM': em, 'f1': f1}
 
-                    elif 'eval_results.json' in os.listdir(res_folder_path):
-                        import pdb; pdb.set_trace()
-                        res_file = f'{res_folder_path}/eval_results.json'
-                        with open(res_file, "r") as f:
-                            data = json.load(f)
-
-                        entery = {'dataset': None, 'aug': None, 'examples': num_examples, 'seed': seed, 'EM': em, 'f1': f1}
                     df_all = df_all.append(entery, ignore_index=True)
     return df_all
 
