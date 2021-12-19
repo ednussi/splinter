@@ -78,6 +78,7 @@ def delta_from_baseline(df):
             aug_df = df[(df['examples'] == examples) & (df['aug'] == aug)]
             delta_dict = {'examples': examples, 'aug': aug,'EM': float(aug_df['EM']) - float(baseline['EM']),'f1': float(aug_df['f1']) - float(baseline['f1'])}
             delta_df = delta_df.append(delta_dict, ignore_index=True)
+    delta_df = delta_df.round(3)
     return delta_df
 
 def print_overleaf_style(df):
@@ -88,12 +89,14 @@ def print_overleaf_style(df):
                     row = df[(df['aug']==aug) & (df['dataset'] == dataset) & (df['examples'] == ex_num)]
                     latex_line = f"\\verb|{row['dataset'].values[0]}| & {row['examples'].values[0]} & \\verb|{row['aug'].values[0]}| & {row['EM'].values[0]} & {row['f1'].values[0]}\\\\"
                     print(latex_line)
+                print('\hline')
     else:
         for ex_num in df['examples'].unique():
             for aug in df['aug'].unique():
                 row = df[(df['aug']==aug) & (df['examples'] == ex_num)]
                 latex_line = f"{row['examples'].values[0]} & \\verb|{row['aug'].values[0]}| & {row['EM'].values[0]} & {row['f1'].values[0]}\\\\"
                 print(latex_line)
+            print('\hline')
 
 def get_f1_em_dict(exp_paths):
     base_path = os.getcwd()
