@@ -19,12 +19,12 @@ def init_parser():
 def get_qa_res_df():
     results_path = '/cs/labs/gabis/ednussi/splinter/finetuning/results'
     df_all = pd.DataFrame()
-    for exp in os.listdir(results_path):
+    for exp in tqdm(os.listdir(results_path), desc='Expirements'):
         exp_path = f'{results_path}/{exp}'
         dataset = exp.split('-')[0]
         aug = exp.split('-')[-1]
-        for num_examples in tqdm([16, 32, 64, 128, 256, 512, 1024], desc='Examples'):
-            for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
+        for num_examples in [16, 32, 64, 128, 256, 512, 1024]:
+            for seed in [42, 43, 44, 45, 46]:
                 res_folder_path = f'{exp_path}/output-{num_examples}-{seed}'
                 if os.path.exists(res_folder_path):
                     if 'eval_results.txt' in os.listdir(res_folder_path):
