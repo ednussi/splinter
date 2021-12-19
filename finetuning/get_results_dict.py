@@ -57,6 +57,20 @@ def average_seeds(df):
                 averages_df = averages_df.append(df_exp_examples_mean, ignore_index=True)
     return averages_df
 
+def average_datasets(df):
+    averages_df = pd.DataFrame()
+    #for dataset in df['dataset'].unique(): #TODO:when missing expirements run change back to this
+    df = df[df['dataset'] in ['naturalquestions', 'bioasq', 'hotpotqa', 'newsqa']]
+    for aug in df['aug'].unique():
+        for examples in df['examples'].unique():
+            ds_aug_ex_df = df[(df['examples'] == examples) & (df['aug'] == aug)]
+            df_exp_examples_mean = ds_aug_ex_df.mean(axis=0)
+            df_exp_examples_mean['aug'] = aug
+            df_exp_examples_mean['examples'] = examples
+            averages_df = averages_df.append(df_exp_examples_mean, ignore_index=True)
+    return averages_df
+
+
 def get_f1_em_dict(exp_paths):
     base_path = os.getcwd()
     for exp in exp_paths:
@@ -90,7 +104,8 @@ def get_f1_em_dict(exp_paths):
 
 if __name__ == '__main__':
     df = get_qa_res_df()
-    avg_df = average_seeds(df)
+    avg_seed_df = average_seeds(df)
+    avg_seed_ds_df = average_datasets(avg_seed_df)
     import pdb; pdb.set_trace()
 
     # args = init_parser()
