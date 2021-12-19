@@ -80,6 +80,21 @@ def delta_from_baseline(df):
             delta_df = delta_df.append(delta_dict, ignore_index=True)
     return delta_df
 
+def print_overleaf_style(df):
+    if 'dataset' in df.columns:
+        for dataset in df['dataset'].unique():
+            for ex_num in df['examples'].unique():
+                for aug in df['aug'].unique():
+                    row = df[(df['aug']==aug) & (df['dataset'] == dataset) & (df['examples'] == ex_num)]
+                    latex_line = f"\\verb|{row['dataset'].values[0]}| & {row['examples'].values[0]} & \\verb|{row['aug'].values[0]}| & {row['EM'].values[0]} & {row['f1'].values[0]}\\\\"
+                    print(latex_line)
+    else:
+        for ex_num in df['examples'].unique():
+            for aug in df['aug'].unique():
+                row = df[(df['aug']==aug) & (df['examples'] == ex_num)]
+                latex_line = f"{row['examples'].values[0]} & \\verb|{row['aug'].values[0]}| & {row['EM'].values[0]} & {row['f1'].values[0]}\\\\"
+                print(latex_line)
+
 def get_f1_em_dict(exp_paths):
     base_path = os.getcwd()
     for exp in exp_paths:
@@ -114,8 +129,14 @@ def get_f1_em_dict(exp_paths):
 if __name__ == '__main__':
     df = get_qa_res_df()
     avg_seed_df = average_seeds(df)
+    print("Average seed df\n")
+    print_overleaf_style(avg_seed_df)
+
     avg_seed_ds_df = average_datasets(avg_seed_df)
+
     delta_df = delta_from_baseline(avg_seed_ds_df)
+    print("Deltas df\n")
+    print_overleaf_style(delta_df)
     import pdb; pdb.set_trace()
 
     # args = init_parser()
