@@ -70,6 +70,15 @@ def average_datasets(df):
             averages_df = averages_df.append(df_exp_examples_mean, ignore_index=True)
     return averages_df
 
+def delta_from_baseline(df):
+    delta_df = pd.DataFrame()
+    for examples in df['examples'].unique():
+        baseline = df[(df['examples'] == examples) & (df['aug'] == 'baseline')]
+        for aug in set(df['aug'].unique()) - set(['baseline']):
+            aug_df = df[(df['examples'] == examples) & (df['aug'] == aug)]
+            delta_dict = {'examples': examples, 'aug': aug,'EM': float(aug_df['EM']) - float(baseline['EM']),'f1': float(aug_df['f1']) - float(baseline['f1'])}
+            delta_df = delta_df.append(delta_dict, ignore_index=True)
+    return delta_df
 
 def get_f1_em_dict(exp_paths):
     base_path = os.getcwd()
@@ -106,6 +115,7 @@ if __name__ == '__main__':
     df = get_qa_res_df()
     avg_seed_df = average_seeds(df)
     avg_seed_ds_df = average_datasets(avg_seed_df)
+    delta_df = delta_from_baseline(avg_seed_ds_df)
     import pdb; pdb.set_trace()
 
     # args = init_parser()
