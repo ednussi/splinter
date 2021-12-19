@@ -60,7 +60,7 @@ def average_seeds(df):
 def average_datasets(df):
     averages_df = pd.DataFrame()
     #for dataset in df['dataset'].unique(): #TODO:when missing expirements run change back to this
-    df = df[df['dataset'] in ['naturalquestions', 'bioasq', 'hotpotqa', 'newsqa']]
+    df = df[[x in ['naturalquestions', 'bioasq', 'hotpotqa', 'newsqa'] for x in df['dataset']]]
     for aug in df['aug'].unique():
         for examples in df['examples'].unique():
             ds_aug_ex_df = df[(df['examples'] == examples) & (df['aug'] == aug)]
