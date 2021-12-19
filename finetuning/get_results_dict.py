@@ -34,7 +34,7 @@ def get_qa_res_df():
 
                         f1 = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_f1 = ')][0])[0]
                         em = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_exact = ')][0])[0]
-                        entery = {'dataset': dataset, 'aug': aug, 'examples': num_examples, 'seed': seed, 'EM': em, 'f1': f1}
+                        entery = {'dataset': dataset, 'aug': aug, 'examples': num_examples, 'seed': seed, 'EM': float(em), 'f1': float(f1)}
 
                     df_all = df_all.append(entery, ignore_index=True)
     return df_all
