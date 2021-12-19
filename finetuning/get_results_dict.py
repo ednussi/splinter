@@ -26,8 +26,9 @@ def get_qa_res_df():
         exp_path = f'{results_path}/{exp}'
         dataset = exp.split('-')[0]
         aug = exp.split('-')[-1]
-        for num_examples in [16, 32, 64, 128, 256, 512, 1024]:
+        for num_examples in [16, 32, 64, 128, 256]:
             for seed in [42, 43, 44, 45, 46]:
+                entery = {'dataset': dataset, 'aug': aug, 'examples': num_examples, 'seed': seed, 'EM': None, 'f1': None}
                 res_folder_path = f'{exp_path}/output-{num_examples}-{seed}'
                 if os.path.exists(res_folder_path):
                     if 'eval_results.txt' in os.listdir(res_folder_path):
@@ -39,7 +40,7 @@ def get_qa_res_df():
                         em = re.findall("\d+\.\d+", [x for x in lines if x.startswith('best_exact = ')][0])[0]
                         entery = {'dataset': dataset, 'aug': aug, 'examples': num_examples, 'seed': seed, 'EM': float(em), 'f1': float(f1)}
 
-                    df_all = df_all.append(entery, ignore_index=True)
+                df_all = df_all.append(entery, ignore_index=True)
     return df_all
 
 def average_seeds(df):
