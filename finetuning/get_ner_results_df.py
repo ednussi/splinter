@@ -22,7 +22,6 @@ def get_results_df(ner_results_path):
 
     for exp in os.listdir(ner_results_path):
         exp_path = f'{ner_results_path}/{exp}'
-        res_dict = {}
         for num_examples in tqdm([16, 32, 64, 128, 256, 512, 1024], desc='Examples'):
             for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
                 res_folder_path = f'{exp_path}/output-{num_examples}-{seed}'
@@ -30,22 +29,12 @@ def get_results_df(ner_results_path):
                     res_file = f'{res_folder_path}/eval_results.json'
                     with open(res_file, "r") as f:
                         data = json.load(f)
-                    # df = json_normalize(data)
-                    # if df_all.empty:
-                    #     df_all = df
-                    # else:
-                    #     df_all = df_all.join(df)
-
-                    # plot this aug
-                    print(f'============ {exp} ============')
-
                     res_dict = {'exp':exp, 'examples': num_examples, 'seed': seed, 'f1': data['eval_f1'], 'accuracy': data['eval_accuracy'],
                                                           'precision': data['eval_precision'], 'recall': data['eval_recall'],
                                                           'loss': data['eval_loss']}
                     df_all = df_all.append(res_dict, ignore_index=True)
 
-    print(df_all)
-    print(df_all.to_dict())
+    return df_all
 if __name__ == '__main__':
     # args = init_parser()
     ner_results_path = 'results_ner'
