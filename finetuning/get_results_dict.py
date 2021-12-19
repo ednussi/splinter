@@ -41,7 +41,7 @@ def get_qa_res_df():
                             data = json.load(f)
 
                         entery = {'dataset': None, 'aug': None, 'examples': num_examples, 'seed': seed, 'EM': em, 'f1': f1}
-                    df_all = df_all.append(df_all, ignore_index=True)
+                    df_all = df_all.append(entery, ignore_index=True)
     return df_all
 
 def get_f1_em_dict(exp_paths):
