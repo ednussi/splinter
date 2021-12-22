@@ -1,6 +1,5 @@
 """ Adapted from HuggingFace code for SQuAD """
 
-from typing_extensions import ParamSpecArgs
 from tqdm import tqdm
 from mosaic_augment_utils import mosaic_npairs_single_qac_aug, context_shuffle_aug, concat_lorem_ipsum, concat_coherent_text
 import os
