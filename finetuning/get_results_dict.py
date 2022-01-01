@@ -26,7 +26,9 @@ def get_qa_res_df():
         exp_path = f'{results_path}/{exp}'
         dataset = exp.split('-')[0]
         aug = exp.split('-')[-1]
-        for num_examples in [16, 32, 64, 128, 256]:
+        for num_examples in [16, 32, 64, 128, 256, 512, 1024]:
+            if (dataset == 'squad') & num_examples == 512:
+                import pdb; pdb.set_trace()
             for seed in [42, 43, 44, 45, 46]:
                 entery = {'dataset': dataset, 'aug': aug, 'examples': num_examples, 'seed': seed, 'EM': None, 'f1': None}
                 res_folder_path = f'{exp_path}/output-{num_examples}-{seed}'
@@ -103,7 +105,7 @@ def get_f1_em_dict(exp_paths):
     for exp in exp_paths:
 
         res_dict = {}
-        for num_examples in tqdm([16, 32, 64, 128, 256], desc='Base Examples'):
+        for num_examples in tqdm([16, 32, 64, 128, 256, 512, 1024], desc='Base Examples'):
 
             for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
 
@@ -129,8 +131,17 @@ def get_f1_em_dict(exp_paths):
         print(f'============ {exp} ============')
         print(res_dict)
 
+def get_missing_expirements(df):
+    print(df[df['f1'].isna()])
+
+
+
 if __name__ == '__main__':
     df = get_qa_res_df()
+
+    squad_df = df[df['dataset'] == 'squad']
+
+
     avg_seed_df = average_seeds(df)
     print("Average seed df\n")
     print_overleaf_style(avg_seed_df)
