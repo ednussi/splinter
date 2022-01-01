@@ -412,9 +412,8 @@ newsqa_mosaic_2_True = {'16-42': {'exact': ['0.309'], 'f1': ['1.153']}, '16-43':
 ####### NER #####
 
 
-def get_average_ner_res():
-    ner_results_path = 'ner_res'
-    ner_results_df = get_results_df('ner_res')
+def get_average_ner_res(ner_results_path):
+    ner_results_df = get_results_df(ner_results_path)
     ner_results_dict = ner_results_df.to_dict()
 
     averages_df = pd.DataFrame()
@@ -448,8 +447,8 @@ def print_overleaf_style(df):
                 latex_line = f"\\verb|{row['dataset'].values[0]}| & {row['examples'].values[0]} & \\verb|{row['aug'].values[0]}| & {row['accuracy'].values[0]} & {row['recall'].values[0]} & {row['precision'].values[0]} & {row['f1'].values[0]}\\\\"
                 print(latex_line)
 
-def get_average_over_seeds_df():
-    averages_df = get_average_ner_res()
+def get_average_over_seeds_df(ner_results_path):
+    averages_df = get_average_ner_res(ner_results_path)
     print('averages_df')
     print(averages_df)
     averages_df = averages_df.round(3) # Average to 3rd decimal
@@ -491,8 +490,9 @@ def get_deltas_df(averages_df):
 
 
 if __name__ == '__main__':
-
-    averages_df = get_average_over_seeds_df()
+    ner_results_path = 'results_ner'
+    ner_results_path='results'
+    averages_df = get_average_over_seeds_df(ner_results_path)
     delta_df = get_deltas_df(averages_df)
     average_across_dataests_df = get_average_across_dataests(delta_df)
     for ex_num in average_across_dataests_df['examples'].unique():
