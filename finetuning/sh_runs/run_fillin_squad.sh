@@ -5,11 +5,11 @@ source  /cs/labs/gabis/ednussi/v1/bin/activate
 export MODEL="roberta-base"
 export BASEPATH="/cs/labs/gabis/ednussi/splinter/finetuning"
 
-for aug in "baseline" "lorem-ipsum-double" "concat-coherent-text" "mosaic-2-False" "mosaic-2-True"
+for aug in "lorem-ipsum-double"
 do
   for d in 'squad'
   do
-    for i in 256 128 64 32 16
+    for i in 64 32 16
     do
       for j in 42 43 44 45 46
       do
