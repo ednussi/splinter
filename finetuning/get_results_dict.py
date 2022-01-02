@@ -149,8 +149,13 @@ def get_missing_expirements(df):
 if __name__ == '__main__':
     results_path = '/cs/snapless/gabis/ednussi/results'
     df = get_qa_res_df(results_path)
+    df['f1'].isnull().sum()
+    results_path = '/cs/labs/gabis/ednussi/splinter/finetuning/results'
+    df2 = get_qa_res_df(results_path)
+    df2['f1'].isnull().sum()
+    df2.update(df)
 
-    avg_seed_df = average_seeds(df)
+    avg_seed_df = average_seeds(df2)
     print("Average seed df\n")
     print_overleaf_style(avg_seed_df)
 
@@ -161,21 +166,12 @@ if __name__ == '__main__':
     print_overleaf_style(delta_df)
 
 
-    print(df['dataset'].unique())
-    temp_df = df[df['dataset'] == 'newsqa']
+    # 'lorem', 'searchqa', 'newsqa', 'hotpotqa', 'concat', 'context',
+    # 'bioasq', 'naturalquestions', 'single_run_test']
+    temp_df = df[df['dataset'] == 'hotpotqa']
     temp_df
+
+    null_df = df2[df2['f1'].isnull()]
+    not_null_df = df2[~df2['f1'].isnull()]
+    not_null_df[not_null_df['examples'] < 16]
     import pdb; pdb.set_trace()
-
-    avg_seed_df = average_seeds(df)
-    print("Average seed df\n")
-    print_overleaf_style(avg_seed_df)
-
-    avg_seed_ds_df = average_datasets(avg_seed_df)
-
-    delta_df = delta_from_baseline(avg_seed_ds_df)
-    print("Deltas df\n")
-    print_overleaf_style(delta_df)
-    import pdb; pdb.set_trace()
-
-    # args = init_parser()
-    # get_f1_em_dict(args.exps)
