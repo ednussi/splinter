@@ -4,6 +4,8 @@ import re
 import os
 import json
 import pandas as pd
+from collections import Counter
+
 pd.set_option('display.max_rows', 800)
 pd.set_option('display.max_columns', 800)
 pd.set_option('display.width', 1000)
@@ -155,23 +157,14 @@ if __name__ == '__main__':
     df2['f1'].isnull().sum()
     df2.update(df)
 
-    avg_seed_df = average_seeds(df2)
-    print("Average seed df\n")
+    # squad, bioasq, hotpotqa, naturalquestions
+    # 'searchqa', 'newsqa', 'hotpotqa', 'bioasq', 'naturalquestions','squad'
+    cond_df = df2[df2['dataset']=='bioasq']
+    cond_df
+    avg_seed_df = average_seeds(cond_df)
     print_overleaf_style(avg_seed_df)
-
     avg_seed_ds_df = average_datasets(avg_seed_df)
-
     delta_df = delta_from_baseline(avg_seed_ds_df)
     print("Deltas df\n")
     print_overleaf_style(delta_df)
-
-
-    # 'lorem', 'searchqa', 'newsqa', 'hotpotqa', 'concat', 'context',
-    # 'bioasq', 'naturalquestions', 'single_run_test']
-    temp_df = df[df['dataset'] == 'hotpotqa']
-    temp_df
-
-    null_df = df2[df2['f1'].isnull()]
-    not_null_df = df2[~df2['f1'].isnull()]
-    not_null_df[not_null_df['examples'] < 16]
     import pdb; pdb.set_trace()
