@@ -26,9 +26,7 @@ def get_qa_res_df():
         exp_path = f'{results_path}/{exp}'
         dataset = exp.split('-')[0]
         aug = exp.split('-')[-1]
-        for num_examples in [16, 32, 64, 128, 256, 512, 1024]:
-            if (dataset == 'squad') & num_examples == 512:
-                import pdb; pdb.set_trace()
+        for num_examples in [16, 32, 64, 128, 256]:
             for seed in [42, 43, 44, 45, 46]:
                 entery = {'dataset': dataset, 'aug': aug, 'examples': num_examples, 'seed': seed, 'EM': None, 'f1': None}
                 res_folder_path = f'{exp_path}/output-{num_examples}-{seed}'
@@ -72,13 +70,26 @@ def average_datasets(df):
             averages_df = averages_df.append(df_exp_examples_mean, ignore_index=True)
     return averages_df
 
+
+def calc_diff(v_base, v_new):
+    diff_val = round(float(v_new) - float(v_base), 3)
+    relative_diff_val = round(diff_val * 100 / float(v_base), 1)
+    if diff_val >= 0:
+        diff_return_str = str(f'+{diff_val}(+{relative_diff_val}\\%)')
+    else:
+        diff_return_str = str(f'{diff_val}({relative_diff_val}\\%)')
+    return diff_return_str
+
 def delta_from_baseline(df):
     delta_df = pd.DataFrame()
     for examples in df['examples'].unique():
         baseline = df[(df['examples'] == examples) & (df['aug'] == 'baseline')]
         for aug in set(df['aug'].unique()) - set(['baseline']):
             aug_df = df[(df['examples'] == examples) & (df['aug'] == aug)]
-            delta_dict = {'examples': examples, 'aug': aug,'EM': float(aug_df['EM']) - float(baseline['EM']),'f1': float(aug_df['f1']) - float(baseline['f1'])}
+            delta_dict = {'examples': examples,
+                          'aug': aug,
+                          'EM': calc_diff(baseline['EM'], aug_df['EM']),
+                          'f1': calc_diff(baseline['f1'], aug_df['f1'])}
             delta_df = delta_df.append(delta_dict, ignore_index=True)
     delta_df = delta_df.round(3)
     return delta_df
@@ -105,7 +116,7 @@ def get_f1_em_dict(exp_paths):
     for exp in exp_paths:
 
         res_dict = {}
-        for num_examples in tqdm([16, 32, 64, 128, 256, 512, 1024], desc='Base Examples'):
+        for num_examples in tqdm([16, 32, 64, 128, 256], desc='Base Examples'):
 
             for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
 
