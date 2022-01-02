@@ -19,13 +19,12 @@ def init_parser():
     return parser.parse_args()
 
 
-def get_qa_res_df():
-    results_path = '/cs/labs/gabis/ednussi/splinter/finetuning/results'
+def get_qa_res_df(results_path):
     df_all = pd.DataFrame()
     for exp in tqdm(os.listdir(results_path), desc='Expirements'):
         exp_path = f'{results_path}/{exp}'
         dataset = exp.split('-')[0]
-        aug = exp.split('-')[-1]
+        aug = '_'.join(exp.split('-')[1:])
         for num_examples in [16, 32, 64, 128, 256]:
             for seed in [42, 43, 44, 45, 46]:
                 entery = {'dataset': dataset, 'aug': aug, 'examples': num_examples, 'seed': seed, 'EM': None, 'f1': None}
@@ -148,10 +147,24 @@ def get_missing_expirements(df):
 
 
 if __name__ == '__main__':
-    df = get_qa_res_df()
+    results_path = '/cs/snapless/gabis/ednussi/results'
+    df = get_qa_res_df(results_path)
 
-    squad_df = df[df['dataset'] == 'squad']
+    avg_seed_df = average_seeds(df)
+    print("Average seed df\n")
+    print_overleaf_style(avg_seed_df)
 
+    avg_seed_ds_df = average_datasets(avg_seed_df)
+
+    delta_df = delta_from_baseline(avg_seed_ds_df)
+    print("Deltas df\n")
+    print_overleaf_style(delta_df)
+
+
+    print(df['dataset'].unique())
+    temp_df = df[df['dataset'] == 'newsqa']
+    temp_df
+    import pdb; pdb.set_trace()
 
     avg_seed_df = average_seeds(df)
     print("Average seed df\n")
