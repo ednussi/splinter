@@ -7,7 +7,7 @@ export BASEPATH="/cs/labs/gabis/ednussi/splinter/finetuning"
 
 for aug in "baseline" "lorem-ipsum-double" "concat-coherent-text" "mosaic-2-False" "mosaic-2-True"
 do
-  for d in 'squad' 'naturalquestions' 'newsqa' 'searchqa' 'textbookqa' 'triviaqa'
+  for d in 'bioasq' 'squad' 'naturalquestions' 'newsqa' 'searchqa' 'hotpotqa'
   do
     for i in 1024 512
     do
