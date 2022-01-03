@@ -191,6 +191,7 @@ def text_to_MRQA_tokens(text, nlp):
     MRQA_text_tokens_per_sentence = []
     sentences = [sent.text.strip() for sent in doc.sents]
     for sent in sentences:
+        # TODO: sent is not used and run for doc every sentance
         words = [token.text for token in doc]
         spaces = [True if tok.whitespace_ else False for tok in doc]
         tokens_length = [len(t) for t in words]
@@ -654,20 +655,25 @@ def crop_single_qas(row):
                     [0] + list(np.cumsum(sentences_length[:-1]) + np.array(range(1, len(sentences_length)))))
 
     # CROP - Drop at random sentances, before / after signal(answer)
-    
     # Drop after
-    end_crop_index = 0
+    end_crop_index = len(sentences)
     if answer_start_sent_ind < len(sentences):
-        end_crop_index = np.random.randint(answer_start_sent_ind, len(sentences))
+        end_crop_index = np.random.randint(answer_start_sent_ind + 1, len(sentences)+1)
 
     # Drop before
-    start_crop_index = len(sentences)
+    start_crop_index = 0
     if answer_start_sent_ind >= 1:
-        start_crop_index = np.random.randint(answer_start_sent_ind)
-        
+        start_crop_index = np.random.randint(answer_start_sent_ind + 1)
+
+    # uniform distribution to drop #before, and after# - potentially could keep entire sentence
     cropped_sentences = sentences[start_crop_index:end_crop_index]
     cropped_context = ' '.join(cropped_sentences)
     cropped_tokens, cropped_MRQA_text_tokens_per_sentence, cropped_context_words, cropped_context_spaces = text_to_MRQA_tokens(cropped_context, nlp) #Changing
+
+    # only dropped sentences from b4 effect the answer token/char spans
+    chars_dropped = sentences_begin_inds[start_crop_index]
+    tokens_till_crop = sum([x[1] < chars_dropped for x in context_tokens])
+    num_tokens_dropped = len(context_tokens[:tokens_till_crop])
 
     qas = []
     for row_qas in row['qas']:
@@ -688,19 +694,48 @@ def crop_single_qas(row):
             old_ans = context[answer_start_ind:answer_end_ind + 1]
             old_tokens = context_tokens[int(det_answer['token_spans'][0][0]):int(det_answer['token_spans'][0][1])+1]
 
-            single_det_ans['char_spans'] = [[shuffled_answer_start_ind, shuffled_answer_end_ind]]  # Changing
+            # remove the chopped chars in the beginning
+            cropped_answer_start_ind = int(det_answer['char_spans'][0][0]) - chars_dropped
+            cropped_answer_end_ind = int(det_answer['char_spans'][0][1]) - chars_dropped
 
-            single_det_ans['token_spans'] = [[shuffled_answer_token_start_ind, shuffled_answer_token_end_ind]] #Changing
+            single_det_ans['char_spans'] = [[cropped_answer_start_ind, cropped_answer_end_ind]]
+            # TODO: correct single shift since tokenizer are not exactly the same
+            if old_ans != cropped_context[cropped_answer_start_ind:cropped_answer_end_ind + 1]:
+                if old_ans == cropped_context[cropped_answer_start_ind+1:cropped_answer_end_ind +1 + 1]:
+                    cropped_answer_start_ind += 1
+                    cropped_answer_end_ind += 1
+                elif old_ans == cropped_context[cropped_answer_start_ind-1:cropped_answer_end_ind]:
+                    cropped_answer_start_ind -= 1
+                    cropped_answer_end_ind -= 1
+                else:
+                    import pdb; pdb.set_trace()
+                    print('Couldnt fix ans')
 
-            # Sanity checks - tokens spans create same answer
-            # if not [x[0] for x in cropped_tokens[shuffled_answer_token_start_ind:shuffled_answer_token_end_ind+1]] == [x[0] for x in old_tokens]:
-            #     print('WARINING: Tokens Mismatch')
-            #     print('original ans tokens', [x[0] for x in old_tokens])
-            #     print('shuffled ans tokens', [x[0] for x in shuffled_tokens[shuffled_answer_token_start_ind:shuffled_answer_token_end_ind+1]])
-            #     """
-            #     shuffled ans tokens ['The', 'lights', 'can', 'be', 'switched', 'on', 'for', '24', '-', 'hrs', '/', 'day', ',', 'or', 'a', 'range', 'of', 'step', '-', 'wise', 'light', 'regimens', 'to', 'encourage', 'the', 'birds', 'to', 'feed', 'often', 'and', 'therefore', 'grow', 'rapidly']
-            #     original ans tokens ['The', 'lights', 'can', 'be', 'switched', 'on', 'for', '24-hrs', '/', 'day', ',', 'or', 'a', 'range', 'of', 'step', '-', 'wise', 'light', 'regimens', 'to', 'encourage', 'the', 'birds', 'to', 'feed', 'often', 'and', 'therefore', 'grow', 'rapidly']
-            #     """
+            # Sanity checks
+            new_ans = cropped_context[cropped_answer_start_ind:cropped_answer_end_ind + 1]
+            if old_ans != new_ans:
+                import pdb; pdb.set_trace()
+                print('WARNING: Answers Mismatch')
+                print('old_ans', old_ans)
+                print('new_ans', new_ans)
+
+            # remove the chopped tokens in the beginning
+            cropped_answer_token_start_ind = sum([cropped_answer_start_ind > x[1] for x in cropped_tokens])
+            cropped_answer_token_end_ind = sum(
+                [cropped_answer_end_ind >= x[1] for x in cropped_tokens]) - 1  # Inclusive so removing 1 for span
+            single_det_ans['token_spans'] = [
+                [cropped_answer_token_start_ind, cropped_answer_token_end_ind]]  # Changing
+
+
+
+            if not [x[0] for x in
+                    cropped_tokens[cropped_answer_token_start_ind:cropped_answer_token_end_ind + 1]] == \
+                   [x[0] for x in old_tokens]:
+                import pdb; pdb.set_trace()
+                print('WARINING: Tokens Mismatch')
+                print('original ans tokens', [x[0] for x in old_tokens])
+                print('cropped ans tokens', [x[0] for x in cropped_tokens[
+                                                            cropped_answer_token_start_ind:cropped_answer_token_end_ind + 1]])
 
             detected_answers.append(single_det_ans)
         
@@ -716,9 +751,8 @@ def crop_qas_df(df):
     for i in tqdm(range(0, len(df)), desc='Creating Concat Augs'):
         row = pd.Series(deepcopy(df.iloc[i].to_dict()))
         row = crop_single_qas(row)
-        cropped_df.append(row, ignore_index=True)
+        cropped_df = cropped_df.append(row, ignore_index=True)
     return cropped_df
-
 
 def mosaic_npairs_single_qac_aug(input_data, pairs=2, final_single_qac_triplets=True, seed=None, crop=False):
     df = input_data_to_df(input_data)
