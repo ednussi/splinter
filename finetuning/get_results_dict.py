@@ -27,7 +27,7 @@ def get_qa_res_df(results_path):
         exp_path = f'{results_path}/{exp}'
         dataset = exp.split('-')[0]
         aug = '_'.join(exp.split('-')[1:])
-        for num_examples in [16, 32, 64, 128, 256]:
+        for num_examples in [16, 32, 64, 128, 256, 512, 1024]:
             for seed in [42, 43, 44, 45, 46]:
                 entery = {'dataset': dataset, 'aug': aug, 'examples': num_examples, 'seed': seed, 'EM': None, 'f1': None}
                 res_folder_path = f'{exp_path}/output-{num_examples}-{seed}'
@@ -117,7 +117,7 @@ def get_f1_em_dict(exp_paths):
     for exp in exp_paths:
 
         res_dict = {}
-        for num_examples in tqdm([16, 32, 64, 128, 256], desc='Base Examples'):
+        for num_examples in tqdm([16, 32, 64, 128, 256, 512, 1024], desc='Base Examples'):
 
             for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
 
@@ -159,12 +159,18 @@ if __name__ == '__main__':
 
     # squad, bioasq, hotpotqa, naturalquestions
     # 'searchqa', 'newsqa', 'hotpotqa', 'bioasq', 'naturalquestions','squad'
-    cond_df = df2[df2['dataset']=='bioasq']
-    cond_df
+    cond_df = df2[df2['dataset']=='squad']
     avg_seed_df = average_seeds(cond_df)
     print_overleaf_style(avg_seed_df)
     avg_seed_ds_df = average_datasets(avg_seed_df)
-    delta_df = delta_from_baseline(avg_seed_ds_df)
+    delta_df = delta_from_baseline(avg_seed_df)
     print("Deltas df\n")
     print_overleaf_style(delta_df)
     import pdb; pdb.set_trace()
+
+    #ALL
+    avg_seed_df = average_seeds(df2)
+    print_overleaf_style(avg_seed_df)
+    avg_seed_ds_df = average_datasets(avg_seed_df)
+    delta_df = delta_from_baseline(avg_seed_df)
+    print_overleaf_style(delta_df)

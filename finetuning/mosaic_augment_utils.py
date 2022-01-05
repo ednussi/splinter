@@ -701,15 +701,23 @@ def crop_single_qas(row):
             single_det_ans['char_spans'] = [[cropped_answer_start_ind, cropped_answer_end_ind]]
             # TODO: correct single shift since tokenizer are not exactly the same
             if old_ans != cropped_context[cropped_answer_start_ind:cropped_answer_end_ind + 1]:
-                if old_ans == cropped_context[cropped_answer_start_ind+1:cropped_answer_end_ind +1 + 1]:
-                    cropped_answer_start_ind += 1
-                    cropped_answer_end_ind += 1
-                elif old_ans == cropped_context[cropped_answer_start_ind-1:cropped_answer_end_ind]:
-                    cropped_answer_start_ind -= 1
-                    cropped_answer_end_ind -= 1
-                else:
-                    import pdb; pdb.set_trace()
+                fixed = False
+                for i in range(1,len(sentences)):
+
+                    if old_ans == cropped_context[cropped_answer_start_ind+i:cropped_answer_end_ind+i + 1]:
+                        cropped_answer_start_ind += i
+                        cropped_answer_end_ind += i
+                        fixed=True
+                        break
+                    elif old_ans == cropped_context[cropped_answer_start_ind-i:cropped_answer_end_ind -i +1]:
+                        cropped_answer_start_ind -= i
+                        cropped_answer_end_ind -= i
+                        fixed = True
+                        break
+                if not fixed:
                     print('Couldnt fix ans')
+                    continue # lossing the ans
+
 
             # Sanity checks
             new_ans = cropped_context[cropped_answer_start_ind:cropped_answer_end_ind + 1]
