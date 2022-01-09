@@ -117,7 +117,7 @@ def get_f1_em_dict(exp_paths):
     for exp in exp_paths:
 
         res_dict = {}
-        for num_examples in tqdm([16, 32, 64, 128, 256, 512, 1024], desc='Base Examples'):
+        for num_examples in tqdm([16, 32, 64, 128, 256], desc='Base Examples'):
 
             for seed in tqdm([42, 43, 44, 45, 46], desc='Seeds'):
 
@@ -149,17 +149,24 @@ def get_missing_expirements(df):
 
 
 if __name__ == '__main__':
-    results_path = '/cs/snapless/gabis/ednussi/results'
-    df = get_qa_res_df(results_path)
-    df['f1'].isnull().sum()
-    results_path = '/cs/labs/gabis/ednussi/splinter/finetuning/results'
-    df2 = get_qa_res_df(results_path)
-    df2['f1'].isnull().sum()
-    df2.update(df)
 
-    # squad, bioasq, hotpotqa, naturalquestions
-    # 'searchqa', 'newsqa', 'hotpotqa', 'bioasq', 'naturalquestions','squad'
-    cond_df = df2[df2['dataset']=='squad']
+    results_path = '/cs/labs/gabis/ednussi/splinter/finetuning/results'
+    df = get_qa_res_df(results_path)
+    miss_tot = df['f1'].isnull().sum()
+    print(f'Missing total: {miss_tot}')
+
+    for d in ['squad', 'bioasq', 'hotpotqa', 'searchqa', 'newsqa', 'naturalquestions']:
+        # check how muhc is missing
+        cond_df = df[df['dataset'] == d]
+        miss_d = cond_df.isnull().sum()
+        print(f'Missing for {d} total: {miss_d}')
+
+    import pdb; pdb.set_trace()
+
+    # check how muhc is missing
+    cond_df = df[df['dataset']=='hotpotqa']
+    cond_df.isnull().sum()
+
     avg_seed_df = average_seeds(cond_df)
     print_overleaf_style(avg_seed_df)
     avg_seed_ds_df = average_datasets(avg_seed_df)
@@ -169,8 +176,12 @@ if __name__ == '__main__':
     import pdb; pdb.set_trace()
 
     #ALL
-    avg_seed_df = average_seeds(df2)
-    print_overleaf_style(avg_seed_df)
+    avg_seed_df = average_seeds(df)
     avg_seed_ds_df = average_datasets(avg_seed_df)
-    delta_df = delta_from_baseline(avg_seed_df)
+    delta_df = delta_from_baseline(avg_seed_ds_df)
     print_overleaf_style(delta_df)
+
+    #
+    cond_df = df[df['dataset'] == 'hotpotqa']
+    cond_df = cond_df[cond_df['examples'] <= 256]
+    cond_df['f1'].isnull().sum()
