@@ -5,7 +5,7 @@ source  /cs/labs/gabis/ednussi/v1/bin/activate
 export MODEL="roberta-base"
 export BASEPATH="/cs/labs/gabis/ednussi/splinter/finetuning"
 
-for aug in "mosaiccrop"
+for aug in "mosaiccrop-2-False"
 do
   for d in 'bioasq'
   do
@@ -14,7 +14,7 @@ do
       for j in 42 43 44 45 46
       do
         echo "Loop $i-$j"
-        EXPNAME="$d-$aug"
+        EXPNAME="$d-mosaiccrop"
         TRAINFILE="$BASEPATH/mrqa_data/$d/$d-train-seed-$j-num-examples-$i.jsonl"
         TESTFILE="$BASEPATH/mrqa_data/$d/dev.jsonl"
         OUTPUTDIR="$BASEPATH/results/$EXPNAME/output-$i-$j"
