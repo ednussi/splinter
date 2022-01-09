@@ -152,6 +152,7 @@ if __name__ == '__main__':
 
     results_path = '/cs/labs/gabis/ednussi/splinter/finetuning/results'
     df = get_qa_res_df(results_path)
+    df = df[df['examples'] <= 256]
     miss_tot = df['f1'].isnull().sum()
     print(f'Missing total: {miss_tot}')
 
@@ -164,7 +165,7 @@ if __name__ == '__main__':
     import pdb; pdb.set_trace()
 
     # check how muhc is missing
-    cond_df = df[df['dataset']=='hotpotqa']
+    cond_df = df[df['dataset']=='squad']
     cond_df.isnull().sum()
 
     avg_seed_df = average_seeds(cond_df)
