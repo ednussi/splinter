@@ -153,19 +153,36 @@ if __name__ == '__main__':
     results_path = '/cs/labs/gabis/ednussi/splinter/finetuning/results'
     df = get_qa_res_df(results_path)
     df = df[df['examples'] <= 256]
+    df = df.loc[df['dataset'].isin(['squad', 'bioasq', 'hotpotqa', 'searchqa', 'naturalquestions'])]
+    df = df.loc[df['aug'].isin(['baseline', 'mosaic_2_False', 'lorem_ipsum_double', 'concat_coherent_text'])]
+
+    df.loc[df['column_name'].isin([])]
+
     miss_tot = df['f1'].isnull().sum()
     print(f'Missing total: {miss_tot}')
 
-    for d in ['squad', 'bioasq', 'hotpotqa', 'searchqa', 'newsqa', 'naturalquestions']:
+    cc = ['baseline', 'mosaic_2_False', 'coherent_text',
+     'lorem_ipsum_double', 'mosaiccrop_2_False', 'concat_coherent_text',
+     'mosaic_2_True', 'mosaiccrop', 'lorem_ipsum']
+
+    ['baseline', 'mosaic_2_False', 'concat_coherent_text',
+     'lorem_ipsum_double']
+
+
+    for d in ['squad', 'bioasq', 'hotpotqa', 'newsqa', 'naturalquestions']:
         # check how muhc is missing
         cond_df = df[df['dataset'] == d]
         miss_d = cond_df.isnull().sum()
         print(f'Missing for {d} total: {miss_d}')
+        print(f'===== {d} =====')
+        avg_seed_df = average_seeds(cond_df)
+        print_overleaf_style(avg_seed_df)
 
     import pdb; pdb.set_trace()
 
     # check how muhc is missing
-    cond_df = df[df['dataset']=='squad']
+    cond_df = df[df['dataset']=='naturalquestions']
+    cond_df
     cond_df.isnull().sum()
 
     avg_seed_df = average_seeds(cond_df)
