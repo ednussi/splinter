@@ -152,6 +152,7 @@ if __name__ == '__main__':
 
     results_path = '/cs/labs/gabis/ednussi/splinter/finetuning/results'
     df = get_qa_res_df(results_path)
+    import pdb; pdb.set_trace()
     df = df[df['examples'] <= 256]
     df = df.loc[df['dataset'].isin(['squad', 'bioasq', 'hotpotqa', 'searchqa', 'naturalquestions'])]
     df = df.loc[df['aug'].isin(['baseline', 'mosaic_2_False', 'lorem_ipsum_double', 'concat_coherent_text'])]
