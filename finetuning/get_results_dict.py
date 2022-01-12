@@ -156,8 +156,6 @@ if __name__ == '__main__':
     df = df.loc[df['dataset'].isin(['squad', 'bioasq', 'hotpotqa', 'searchqa', 'naturalquestions'])]
     df = df.loc[df['aug'].isin(['baseline', 'mosaic_2_False', 'lorem_ipsum_double', 'concat_coherent_text'])]
 
-    df.loc[df['column_name'].isin([])]
-
     miss_tot = df['f1'].isnull().sum()
     print(f'Missing total: {miss_tot}')
 
