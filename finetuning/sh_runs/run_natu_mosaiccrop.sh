@@ -6,7 +6,7 @@ export MODEL="roberta-base"
 export BASEPATH="/cs/labs/gabis/ednussi/splinter/finetuning"
 
 d='naturalquestions'
-for i in 32 16
+for i in 256 128 64 32 16
 do
   for j in 42 43 44 45 46
   do

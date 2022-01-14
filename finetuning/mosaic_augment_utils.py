@@ -743,7 +743,6 @@ def crop_single_qas(row):
             if not [x[0] for x in
                     cropped_tokens[cropped_answer_token_start_ind:cropped_answer_token_end_ind + 1]] == \
                    [x[0] for x in old_tokens]:
-                import pdb; pdb.set_trace()
                 print('WARINING: Tokens Mismatch')
                 print('original ans tokens', [x[0] for x in old_tokens])
                 print('cropped ans tokens', [x[0] for x in cropped_tokens[
