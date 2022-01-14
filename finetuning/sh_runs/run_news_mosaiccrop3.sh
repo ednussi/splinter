@@ -1,5 +1,5 @@
 #!/bin/sh
-#SBATCH --time=4-0:0:0
+#SBATCH --time=2-0:0:0
 #SBATCH --gres=gpu:1
 source  /cs/labs/gabis/ednussi/v1/bin/activate
 export MODEL="roberta-base"

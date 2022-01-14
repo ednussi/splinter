@@ -85,15 +85,19 @@ class MRQAProcessor:
 
         examples = []
 
-        for _, row in tqdm(df.iterrows()):
+        for i, row in tqdm(df.iterrows()):
             context = row["context"]
             context_tokens = row["context_tokens"]
             for qa in row["qas"]:
                 qas_id = qa["id" if "id" in qa else "qid"]
                 question_text = qa["question"]
                 question_tokens = qa["question_tokens"]
+                try:
+                    answer = qa["detected_answers"][0]
+                except:
+                    print(i)
+                    continue
 
-                answer = qa["detected_answers"][0]
                 answer_text = " ".join(
                     [c_t[0] for c_t in context_tokens[answer['token_spans'][0][0]: answer['token_spans'][0][1] + 1]])
                 start_position_character = answer["char_spans"][0][0]

@@ -678,7 +678,11 @@ def crop_single_qas(row):
     qas = []
     for row_qas in row['qas']:
         single_qas = {}
-        single_qas['id'] = row_qas['id']
+        if 'id' in row_qas.keys():
+            new_id = row_qas['id']
+        else:
+            new_id = ''
+        single_qas['id'] = new_id
         single_qas['qid'] = row_qas['qid']
         single_qas['question'] = row_qas['question']
         single_qas['question_tokens'] = row_qas['question_tokens']
@@ -749,7 +753,13 @@ def crop_single_qas(row):
         
         single_qas['detected_answers'] = detected_answers
         qas.append(single_qas)
-    return {'id': row['id'],
+
+    if 'id' in row_qas.keys():
+        new_id = row_qas['id']
+    else:
+        new_id = ''
+
+    return {'id': new_id,
             'context': cropped_context,
             'context_tokens': cropped_tokens,
             'qas': qas}
