@@ -1,6 +1,6 @@
 #!/bin/sh
 #SBATCH --time=4-0:0:0
-#SBATCH --gres=gpu:rtx2080:1
+#SBATCH --gres=gpu:1
 source  /cs/labs/gabis/ednussi/v1/bin/activate
 export MODEL="roberta-base"
 export BASEPATH="/cs/labs/gabis/ednussi/splinter/finetuning"
