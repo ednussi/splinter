@@ -120,12 +120,12 @@ def print_overleaf_style(df):
             print('\hline')
 
 def print_overleaf_style_mean_var_datasets(df):
-    aug_name_dict = {'double_baseline':'baseline-double', 'baseline':'baseline', 'lorem_ipsum':'lorem-ipsum','mosaic':'mosaic-concat','mosaic_crop':'mosaic'}
-    try:
-        df['aug'] = [aug_name_dict['_'.join(x.split("-")[1:])] for x in df['exp']]
-    except:
-        import pdb; pdb.set_trace()
-    df['dataset'] = [x.split("-")[0] for x in df['exp']]
+    # aug_name_dict = {'double_baseline':'baseline-double', 'baseline':'baseline', 'lorem_ipsum':'lorem-ipsum','mosaic':'mosaic-concat','mosaic_crop':'mosaic'}
+    # try:
+    #     df['aug'] = [aug_name_dict['_'.join(x.split("-")[1:])] for x in df['exp']]
+    # except:
+    #     import pdb; pdb.set_trace()
+    # df['dataset'] = [x.split("-")[0] for x in df['exp']]
     df = df.round(3)
     for d in df['dataset'].unique():
         print('\hline \hline \multicolumn{6}{c}{\\textbf{' + d + '}} \\\\')
