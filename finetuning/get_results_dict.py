@@ -138,8 +138,7 @@ def print_overleaf_style_mean_var_datasets(df):
                 baseline_row = df[(df['dataset']==d) & (df['aug']=='baseline') & (df['examples'] == ex_num)]
 
                 latex_lines = [f"{row['examples'].values[0]} & {row['aug'].values[0]} &"]
-                import pdb; pdb.set_trace()
-                for metric in ['em','f1']:
+                for metric in ['EM','f1']:
                     # LINE1
                     latex_line = f" {row[metric].values[0]:.3f} $\pm$ {row[metric + '_var'].values[0]:.3f} &"
                     # if baseline_row[metric].values[0] >= row[metric].values[0]:
