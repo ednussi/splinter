@@ -55,7 +55,7 @@ def average_seeds(df):
                 df_exp_examples_mean['dataset'] = dataset
                 df_exp_examples_mean['aug'] = aug
                 df_exp_examples_mean['examples'] = examples
-
+                import pdb; pdb.set_trace()
                 df_exp_examples_var = ds_aug_ex_df.std(axis=0)
                 naming_dict = {x: x + '_var' for x in df_exp_examples_var.keys()}
                 df_exp_examples_var = df_exp_examples_var.rename(naming_dict)
