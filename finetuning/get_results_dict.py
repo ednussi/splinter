@@ -55,7 +55,17 @@ def average_seeds(df):
                 df_exp_examples_mean['dataset'] = dataset
                 df_exp_examples_mean['aug'] = aug
                 df_exp_examples_mean['examples'] = examples
-                averages_df = averages_df.append(df_exp_examples_mean, ignore_index=True)
+
+                df_exp_examples_var = ds_aug_ex_df.std(axis=0)
+                naming_dict = {x: x + '_var' for x in df_exp_examples_var.keys()}
+                df_exp_examples_var = df_exp_examples_var.rename(naming_dict)
+                df_exp_examples_var['dataset'] = dataset
+                df_exp_examples_var['aug'] = aug
+                df_exp_examples_var['examples'] = examples
+
+                df_mean_var = pd.concat([df_exp_examples_mean, df_exp_examples_var], axis=0)
+
+                averages_df = averages_df.append(df_mean_var, ignore_index=True)
     return averages_df
 
 def average_datasets(df):
@@ -112,6 +122,37 @@ def print_overleaf_style(df):
                 print(latex_line)
             print('\hline')
 
+def print_overleaf_style_mean_var_datasets(df):
+    aug_name_dict = {'double_baseline':'baseline-double', 'baseline':'baseline', 'lorem_ipsum':'lorem-ipsum','mosaic':'mosaic-concat','mosaic_crop':'mosaic'}
+    try:
+        df['aug'] = [aug_name_dict['_'.join(x.split("-")[1:])] for x in df['exp']]
+    except:
+        import pdb; pdb.set_trace()
+    df['dataset'] = [x.split("-")[0] for x in df['exp']]
+    df = df.round(3)
+    for d in df['dataset'].unique():
+        print('\hline \hline \multicolumn{6}{c}{\\textbf{' + d + '}} \\\\')
+        for ex_num in df['examples'].unique():
+            print('\hline')
+
+            for aug in sorted(df['aug'].unique()):
+
+                row = df[(df['dataset']==d) & (df['aug']==aug) & (df['examples'] == ex_num)]
+                baseline_row = df[(df['dataset']==d) & (df['aug']=='baseline') & (df['examples'] == ex_num)]
+
+                latex_lines = [f"{row['examples'].values[0]} & {row['aug'].values[0]} &"]
+
+                for metric in ['accuracy','recall','precision','f1']:
+                    # LINE1
+                    latex_line = f" {row[metric].values[0]:.3f} $\pm$ {row[metric + '_var'].values[0]:.3f} &"
+                    # if baseline_row[metric].values[0] >= row[metric].values[0]:
+                    #     latex_line = f" {row[metric].values[0]:.3f} $\pm$ {row[metric+'_var'].values[0]:.3f} &"
+                    # else:
+                    #     latex_line = f" \\textbf{{{row['accuracy'].values[0]:.3f}}} $\pm$ \\textbf{{{row['accuracy_var'].values[0]:.3f}}} &"
+                    latex_lines.append(latex_line)
+
+                print(''.join(latex_lines)[:-1] + '\\\\')
+
 def get_f1_em_dict(exp_paths):
     base_path = os.getcwd()
     for exp in exp_paths:
@@ -150,29 +191,53 @@ def get_missing_expirements(df):
 
 if __name__ == '__main__':
 
+    # PAPER RES
     results_path = '/cs/labs/gabis/ednussi/splinter/finetuning/results'
     df = get_qa_res_df(results_path)
-    import pdb; pdb.set_trace()
     df = df[df['examples'] <= 256]
-    df = df.loc[df['dataset'].isin(['squad', 'bioasq', 'hotpotqa', 'searchqa', 'naturalquestions'])]
-    df = df.loc[df['aug'].isin(['baseline', 'mosaic_2_False', 'lorem_ipsum_double', 'concat_coherent_text'])]
-
+    df = df.loc[df['dataset'].isin(['squad', 'hotpotqa'])]
+    df = df.loc[df['aug'].isin(['baseline', 'mosaic_2_False', 'mosaiccrop', 'lorem_ipsum'])]
     miss_tot = df['f1'].isnull().sum()
     print(f'Missing total: {miss_tot}')
 
-    cc = ['baseline', 'mosaic_2_False', 'coherent_text',
+    avg_seed_df = average_seeds(df)
+    ### Table 1
+    print_overleaf_style_mean_var_datasets(avg_seed_df)
+
+    import pdb; pdb.set_trace()
+    ### Table 2
+    avg_seed_ds_df = average_datasets(avg_seed_df)
+    delta_df = delta_from_baseline(avg_seed_df)
+    print_overleaf_style(delta_df)
+
+
+
+
+
+
+    results_path = '/cs/labs/gabis/ednussi/splinter/finetuning/results'
+    df = get_qa_res_df(results_path)
+    df = df[df['examples'] <= 256]
+    df = df.loc[df['dataset'].isin(['squad', 'bioasq', 'hotpotqa', 'newsqa', 'naturalquestions'])]
+    df = df.loc[df['aug'].isin(['baseline', 'mosaic_2_False', 'mosaiccrop', 'lorem_ipsum'])]
+    miss_tot = df['f1'].isnull().sum()
+    print(f'Missing total: {miss_tot}')
+
+    #nothing searchqa triviaqa
+    all_datasets =['searchqa', 'newsqa', 'naturalquestions', 'hotpotqa', 'bioasq',
+       'triviaqa', 'squad', 'textbookqa']
+
+    all_aug = ['baseline', 'mosaic_2_False', 'coherent_text',
      'lorem_ipsum_double', 'mosaiccrop_2_False', 'concat_coherent_text',
      'mosaic_2_True', 'mosaiccrop', 'lorem_ipsum']
 
-    ['baseline', 'mosaic_2_False', 'concat_coherent_text',
-     'lorem_ipsum_double']
-
-
     for d in ['squad', 'bioasq', 'hotpotqa', 'newsqa', 'naturalquestions']:
         # check how muhc is missing
-        cond_df = df[df['dataset'] == d]
+        cond_df = df[df['dataset'] == 'squad']
+        cond_df.isnull().sum()
         miss_d = cond_df.isnull().sum()
         print(f'Missing for {d} total: {miss_d}')
+
         print(f'===== {d} =====')
         avg_seed_df = average_seeds(cond_df)
         print_overleaf_style(avg_seed_df)
